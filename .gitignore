@@ -21,6 +21,8 @@ node_modules/
 state/*.db
 state/*.db-*
 state/*.jsonl
+# Local data-lock snapshots + backups (scripts/data-lock.mjs) — machine-local, never committed
+state/data-lock/
 
 # Append-only runtime streams (record/) — durable home is the Data Layer.
 # Bulky/regenerable streams (runs, signals, observations) are gitignored, BUT the
