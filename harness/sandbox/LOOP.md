@@ -46,8 +46,20 @@ through the **loop-store** (the data layer). `state/os.db` is the readable proje
 | `classifier` | runner | classify | `classified` | `classifier.test.mjs` |
 | `estimator` | runner | estimate (scores work) | `estimates` | `estimator.test.mjs` |
 | `reconciler` | runner | reconcile (no-limbo backstop) | `incidents` | `reconciler.test.mjs` |
+| `pipeline` | orchestrator | the gated chain `pre-frame→…→observe` | `chain,gates` | `pipeline.test.mjs` |
 | `signal-ledger` | service | (reference capture variant, **not wired**) | — | (v2) |
-| `investigator` | runner (agent) | the first real LLM agent (Tier C) | `record/incidents/*.md` | (v2) |
+| `investigator` | runner (agent) | the first real LLM agent, via `/incident` | `record/incidents/*.md` | (v2) |
+
+## Beyond the loop
+
+- **Gated chain** (`pipeline`) — `pre-frame → frame → scope → design → build → deploy →
+  observe`, stopping at each gate for your approval (recorded async, never a live block).
+  Stages name their owning `planned` component; no fake runners.
+- **Observable view** — `state/os.db` → Supabase `osr_events` (hosted projection) → a
+  deployed Vercel dashboard: https://web-lemon-ten-15.vercel.app (see [`../../web/`](../../web/)).
+- **Data protection** — `scripts/data-lock.mjs` makes `record/` append-only data provably
+  un-overwritable (chflags uchg + checksum baseline; self-proves append/overwrite/delete are
+  rejected; unlock restores appendability).
 
 Enforcement (governance/enforcement): `doctor` · `governance-check` · `structure-check` ·
 **`no-ghost-agent`** (every routing target resolves to something real).
