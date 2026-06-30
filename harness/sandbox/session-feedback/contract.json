@@ -1,0 +1,27 @@
+{
+  "name": "session-feedback",
+  "type": "hook",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "command",
+  "summary": "UserPromptSubmit hook that makes the loop visible. Runs the orchestrator loop on the typed prompt and prints the trace back into the session (signal extracted -> classified -> estimated -> routed -> outcome). Sole writer of record/signals.jsonl via the loop. FAIL-OPEN: never blocks a turn.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. Wired in .claude/settings.json (a wired candidate is still a candidate). NOT admitted."
+  },
+  "input": { "description": "A Claude Code UserPromptSubmit payload on stdin.", "schema": { "prompt": "string", "session_id": "string" } },
+  "output": { "description": "One visible trace line printed to the session.", "schema": { "stdout": "string (🔁 OS loop …)" } },
+  "reads": ["(stdin) UserPromptSubmit payload"],
+  "writes": ["record/signals.jsonl", "record/classified.jsonl", "record/estimates.jsonl", "record/runs.jsonl"],
+  "triggers": "event",
+  "execution": "inline",
+  "exit": "Prints the trace and exits 0 — always (fail-open).",
+  "provenance": true,
+  "invariants": [
+    "Fail-open: any error is swallowed; the turn proceeds untouched.",
+    "The visible trace reproduces for the same input (only the per-stream index #n varies).",
+    "Sole writer of record/signals.jsonl (signal-ledger is not wired alongside it)."
+  ]
+}

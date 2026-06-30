@@ -1,12 +1,12 @@
 {
-  "$comment": "Tracked Claude Code session config. Wires the signal-ledger CANDIDATE (harness/sandbox/) to fire on every turn. Capture is observe-only and fail-open: intake.mjs never blocks a turn. A wired candidate is still a candidate (governance/rules/harness-admission.md) — not admitted to the harness. Hooks load at session start, so capture begins next session.",
+  "$comment": "Tracked Claude Code session config. Wires the signal-loop CANDIDATE (harness/sandbox/) to fire on every prompt: session-feedback runs the orchestrator loop (extract -> classify -> estimate -> route -> outcome) and prints the trace back into the session, so you can watch a command pass through the nodes. It is the SOLE writer of record/signals.jsonl (sole-writer rule). FAIL-OPEN: it never blocks a turn. A wired candidate is still a candidate (governance/rules/harness-admission.md) - not admitted to the harness. Hooks load at session start, so the live trace begins next session. (signal-ledger remains a candidate for reference; it is NOT wired here, to keep one writer per stream.)",
   "hooks": {
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/signal-ledger/intake.mjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/session-feedback/index.mjs\""
           }
         ]
       }
