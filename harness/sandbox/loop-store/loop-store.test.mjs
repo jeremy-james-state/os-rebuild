@@ -51,5 +51,5 @@ test('project: rebuilds a readable events table + per-stream views', () => {
 
 test('STREAMS excludes the governance-ledger (different shape, not loop data)', () => {
   assert.equal(STREAMS.includes('governance-ledger'), false)
-  assert.deepEqual(STREAMS, ['signals', 'runs', 'classified', 'estimates', 'reconcile', 'incidents'])
+  assert.deepEqual(STREAMS, ['signals', 'runs', 'classified', 'estimates', 'reconcile', 'incidents', 'chain', 'gates'])
 })

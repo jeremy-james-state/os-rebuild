@@ -24,7 +24,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 export const REPO_ROOT = resolve(HERE, '..', '..', '..')
 
 /** The loop's streams. Each is a sole-writer append-only log. governance-ledger is NOT here. */
-export const STREAMS = ['signals', 'runs', 'classified', 'estimates', 'reconcile', 'incidents']
+export const STREAMS = ['signals', 'runs', 'classified', 'estimates', 'reconcile', 'incidents', 'chain', 'gates']
 
 export function recordDir() { return process.env.OS_RECORD_DIR || join(REPO_ROOT, 'record') }
 export function streamPath(stream, dir = recordDir()) { return join(dir, `${stream}.jsonl`) }
@@ -103,7 +103,9 @@ CREATE VIEW runs       AS SELECT * FROM events WHERE stream='runs';
 CREATE VIEW classified AS SELECT * FROM events WHERE stream='classified';
 CREATE VIEW estimates  AS SELECT * FROM events WHERE stream='estimates';
 CREATE VIEW reconcile  AS SELECT * FROM events WHERE stream='reconcile';
-CREATE VIEW incidents  AS SELECT * FROM events WHERE stream='incidents';`
+CREATE VIEW incidents  AS SELECT * FROM events WHERE stream='incidents';
+CREATE VIEW chain      AS SELECT * FROM events WHERE stream='chain';
+CREATE VIEW gates      AS SELECT * FROM events WHERE stream='gates';`
 
 /** Drop-and-rebuild state/os.db's `events` table (+ per-stream views) from the JSONL truth. */
 export function project({ dir = recordDir(), db = dbPath(), streams = STREAMS } = {}) {
