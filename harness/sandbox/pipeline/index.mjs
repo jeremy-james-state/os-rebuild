@@ -74,7 +74,10 @@ export function runChain(workItem = {}, opts = {}) {
 /** Record a human approval for a gate, so the next runChain resumes past it. Idempotent. */
 export function approve(id, opts = {}) {
   const dir = opts.dir
-  const [wid, stage] = id.split(SEP)
+  // split on the LAST separator: stage is a known single token (no '::'); wid may contain '::'
+  const i = id.lastIndexOf(SEP)
+  const wid = id.slice(0, i)
+  const stage = id.slice(i + SEP.length)
   const already = read('gates', dir).records.some((g) => g.gateId === id && g.status === 'approved')
   if (already) return { gateId: id, status: 'approved', already: true }
   append('gates', { wid, stage, kind: 'gate', gateId: id, status: 'approved', by: opts.by || 'human', summary: `approved ${stage}` },

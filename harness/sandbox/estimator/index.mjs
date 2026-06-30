@@ -36,7 +36,8 @@ export function estimate(item = {}) {
 
 /** Score and order many items, highest priority first (stable). For backlog prioritisation. */
 export function rank(items = []) {
-  return items
+  const list = Array.isArray(items) ? items : []   // a missing/null backlog yields [], never throws
+  return list
     .map((item, i) => ({ item, i, ...estimate(item) }))
     .sort((a, b) => b.score - a.score || a.i - b.i)
 }

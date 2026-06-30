@@ -6,7 +6,7 @@
  * The data layer for the signal loop. Two representations, one truth:
  *
  *   • record/<stream>.jsonl  — append-only TRUTH (one stream per loop store: signals,
- *                              runs, classified, estimates, reconcile, incidents)
+ *                              runs, classified, estimates, reconcile, incidents, chain, gates)
  *   • state/os.db (table `events`) — the READABLE projection (one row per event,
  *                              rebuildable from the JSONL, gitignored)
  *
@@ -14,8 +14,14 @@
  * `n` is gapless 1..N so completeness is provable. A failed write is recorded to
  * state/loop-store-drops.jsonl — nothing fails silently. Generalised from v2's
  * signal-ledger/ledger.mjs. Zero-dependency (Node 22+ built-ins).
+ *
+ * Concurrency: `append` serialises the read-n-then-write critical section with an O_EXCL
+ * lockfile (per stream), so concurrent writers cannot assign a duplicate `n`. The sole-writer
+ * rule remains the intended topology; the lock makes a violation safe rather than corrupting.
  */
-import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
+import {
+  appendFileSync, mkdirSync, readFileSync, existsSync, openSync, closeSync, unlinkSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
@@ -33,12 +39,28 @@ export function dropPath() { return process.env.OS_DROPS || join(REPO_ROOT, 'sta
 
 const nowIso = () => new Date().toISOString()
 
+// ── single-writer lock (O_EXCL lockfile + bounded synchronous spin) ─────────────
+function sleepMs(ms) { try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms) } catch { /* no SAB → no wait */ } }
+function withLock(lockPath, fn, { attempts = 200, waitMs = 5 } = {}) {
+  mkdirSync(dirname(lockPath), { recursive: true })
+  let fd
+  for (let i = 0; i < attempts && fd === undefined; i++) {
+    try { fd = openSync(lockPath, 'wx') } catch (e) { if (e.code !== 'EEXIST') throw e; sleepMs(waitMs) }
+  }
+  if (fd === undefined) { try { unlinkSync(lockPath) } catch {} fd = openSync(lockPath, 'wx') } // break a stale lock
+  try { return fn() } finally { try { closeSync(fd) } catch {} try { unlinkSync(lockPath) } catch {} }
+}
+
 // ── truth I/O ─────────────────────────────────────────────────────────────────
+/** Read a stream. Never throws: an unreadable file degrades to {records:[], corrupt:-1, unreadable:true}. */
 export function read(stream, dir = recordDir()) {
   const path = streamPath(stream, dir)
   if (!existsSync(path)) return { records: [], corrupt: 0 }
+  let text
+  try { text = readFileSync(path, 'utf8') }
+  catch { return { records: [], corrupt: -1, unreadable: true } } // EISDIR / EACCES / etc.
   let records = [], corrupt = 0
-  for (const line of readFileSync(path, 'utf8').split('\n').filter(Boolean)) {
+  for (const line of text.split('\n').filter(Boolean)) {
     try { records.push(JSON.parse(line)) } catch { corrupt++ }
   }
   return { records, corrupt }
@@ -46,34 +68,39 @@ export function read(stream, dir = recordDir()) {
 
 export function nextIndex(stream, dir = recordDir()) {
   const ns = read(stream, dir).records.map((r) => r.n).filter((n) => typeof n === 'number')
-  return ns.length ? Math.max(...ns) + 1 : 1
+  return ns.reduce((m, v) => (v > m ? v : m), 0) + 1 // reduce, not Math.max(...spread) — no stack-arg cliff
 }
 
 function recordDrop(entry, drops = dropPath()) {
   try { mkdirSync(dirname(drops), { recursive: true }); appendFileSync(drops, `${JSON.stringify({ ts: nowIso(), ...entry })}\n`) }
-  catch { /* drop marker is best-effort; gaps() also detects via count */ }
+  catch { /* drop marker is best-effort; duplicates()/gaps() also detect via the index */ }
 }
 
 /**
  * Append one event to a stream's truth log. Assigns a gapless `n` and an id `<stream>:<n>`.
- * Returns { ok, n, id } or { ok:false, dropped:true, reason } with the miss recorded.
+ * Returns { ok, n, id } on success or { ok:false, dropped:true, n, id, reason } on failure —
+ * a STABLE id is returned even on a drop so downstream linkage never references `undefined`.
+ * The read-n-then-write is serialised by a per-stream lock so concurrent writers don't collide.
  */
 export function append(stream, row = {}, { dir = recordDir(), drops = dropPath(), now = nowIso } = {}) {
   if (!STREAMS.includes(stream)) throw new Error(`unknown stream '${stream}' (known: ${STREAMS.join(', ')})`)
   const path = streamPath(stream, dir)
-  const n = nextIndex(stream, dir)
-  const rec = { n, id: `${stream}:${n}`, ts: row.ts || now(), stream, ...row }
-  try {
-    mkdirSync(dirname(path), { recursive: true })
-    appendFileSync(path, `${JSON.stringify(rec)}\n`)
-  } catch (e) {
-    recordDrop({ stage: 'append', stream, n, reason: String(e?.message || e), record: rec }, drops)
-    return { ok: false, dropped: true, n, reason: String(e?.message || e) }
-  }
-  return { ok: true, n, id: rec.id }
+  return withLock(`${path}.lock`, () => {
+    const n = nextIndex(stream, dir)
+    const rec = { n, id: `${stream}:${n}`, ts: row.ts || now(), stream, ...row }
+    try {
+      mkdirSync(dirname(path), { recursive: true })
+      appendFileSync(path, `${JSON.stringify(rec)}\n`)
+    } catch (e) {
+      recordDrop({ stage: 'append', stream, n, reason: String(e?.message || e), record: rec }, drops)
+      return { ok: false, dropped: true, n, id: rec.id, reason: String(e?.message || e) }
+    }
+    return { ok: true, n, id: rec.id }
+  })
 }
 
-/** Gaps in a stream's index 1..N. Empty ⇒ provably complete. */
+// ── completeness ────────────────────────────────────────────────────────────────
+/** Missing indices in 1..max. */
 export function gaps(stream, dir = recordDir()) {
   const ns = read(stream, dir).records.map((r) => r.n).filter((n) => typeof n === 'number').sort((a, b) => a - b)
   const max = ns.at(-1) ?? 0
@@ -81,6 +108,20 @@ export function gaps(stream, dir = recordDir()) {
   const out = []
   for (let i = 1; i <= max; i++) if (!present.has(i)) out.push(i)
   return out
+}
+
+/** Indices that appear more than once (the concurrent-append failure mode gaps() is blind to). */
+export function duplicates(stream, dir = recordDir()) {
+  const seen = new Map()
+  for (const r of read(stream, dir).records) if (typeof r.n === 'number') seen.set(r.n, (seen.get(r.n) || 0) + 1)
+  return [...seen.entries()].filter(([, c]) => c > 1).map(([n]) => n).sort((a, b) => a - b)
+}
+
+/** Full completeness verdict: complete ⇔ no gaps AND no duplicates AND count === N. */
+export function completeness(stream, dir = recordDir()) {
+  const g = gaps(stream, dir), d = duplicates(stream, dir)
+  const count = read(stream, dir).records.filter((r) => typeof r.n === 'number').length
+  return { complete: g.length === 0 && d.length === 0, gaps: g, duplicates: d, count }
 }
 
 // ── projection (rebuildable, readable) ──────────────────────────────────────────
@@ -107,7 +148,11 @@ CREATE VIEW incidents  AS SELECT * FROM events WHERE stream='incidents';
 CREATE VIEW chain      AS SELECT * FROM events WHERE stream='chain';
 CREATE VIEW gates      AS SELECT * FROM events WHERE stream='gates';`
 
-/** Drop-and-rebuild state/os.db's `events` table (+ per-stream views) from the JSONL truth. */
+/**
+ * Drop-and-rebuild state/os.db's `events` table (+ per-stream views) from the JSONL truth.
+ * Returns { rows (read), count (projected), lost (rows-count), gaps, duplicates }. `lost > 0`
+ * means duplicate-n collapsed rows — surfaced, not swallowed.
+ */
 export function project({ dir = recordDir(), db = dbPath(), streams = STREAMS } = {}) {
   mkdirSync(dirname(db), { recursive: true })
   const sql = new DatabaseSync(db)
@@ -118,21 +163,22 @@ export function project({ dir = recordDir(), db = dbPath(), streams = STREAMS } 
     (stream,n,id,ts,kind,status,summary,trace_id,span_id,parent_span_id,session,run,call,branch,payload)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
   let rows = 0
-  const allGaps = {}
+  const allGaps = {}, allDups = {}
   for (const stream of streams) {
     const { records } = read(stream, dir)
     for (const r of records.sort((a, b) => (a.n ?? 0) - (b.n ?? 0))) {
+      const summary = r.summary == null ? null : String(r.summary).slice(0, 500) // explicit null guard (no falsy short-circuit)
       ins.run(stream, r.n ?? 0, r.id ?? `${stream}:${r.n}`, r.ts ?? null, r.kind ?? null, r.status ?? null,
-        (r.summary ?? null) && String(r.summary).slice(0, 500), r.traceId ?? null, r.spanId ?? null, r.parentSpanId ?? null,
+        summary, r.traceId ?? null, r.spanId ?? null, r.parentSpanId ?? null,
         r.session ?? null, r.run ?? null, typeof r.call === 'number' ? r.call : null, r.branch ?? null, JSON.stringify(r))
       rows++
     }
-    const g = gaps(stream, dir)
-    if (g.length) allGaps[stream] = g
+    const g = gaps(stream, dir); if (g.length) allGaps[stream] = g
+    const d = duplicates(stream, dir); if (d.length) allDups[stream] = d
   }
   const count = sql.prepare('SELECT count(*) AS c FROM events').get().c
   sql.close()
-  return { rows, count, gaps: allGaps }
+  return { rows, count, lost: rows - count, gaps: allGaps, duplicates: allDups }
 }
 
 // ── thin CLI ──────────────────────────────────────────────────────────────────
@@ -140,12 +186,13 @@ function main() {
   const [cmd, arg] = process.argv.slice(2)
   if (cmd === 'project') {
     const r = project()
-    process.stdout.write(`projected ${dbPath()}: ${r.count} events; gaps=${JSON.stringify(r.gaps)}\n`)
+    const warn = r.lost > 0 ? `  ⚠ ${r.lost} row(s) lost to duplicate-n: ${JSON.stringify(r.duplicates)}` : ''
+    process.stdout.write(`projected ${dbPath()}: ${r.count} events (read ${r.rows}); gaps=${JSON.stringify(r.gaps)}${warn}\n`)
   } else if (cmd === 'gaps') {
-    process.stdout.write(`${arg || 'all'}: ${JSON.stringify(arg ? gaps(arg) : Object.fromEntries(STREAMS.map((s) => [s, gaps(s)])))}\n`)
+    process.stdout.write(`${arg || 'all'}: ${JSON.stringify(arg ? completeness(arg) : Object.fromEntries(STREAMS.map((s) => [s, completeness(s)])))}\n`)
   } else if (cmd === 'read' && arg) {
-    const { records, corrupt } = read(arg)
-    process.stdout.write(`${records.length} in ${streamPath(arg)} (corrupt ${corrupt}); gaps=[${gaps(arg).join(',')}]\n`)
+    const c = completeness(arg)
+    process.stdout.write(`${c.count} in ${streamPath(arg)}; complete=${c.complete} gaps=[${c.gaps}] dups=[${c.duplicates}]\n`)
   } else {
     process.stdout.write(`streams: ${STREAMS.map((s) => `${s}=${read(s).records.length}`).join(' ')}\n`)
   }

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runLoop } from './index.mjs'
@@ -68,6 +68,19 @@ test('outcome is ALWAYS one of completed|unknown|failed (closed loop)', () => {
       const r = runLoop({ summary: s }, { dir, now: fixedNow, idGen: ids(), handlers: { doctor: () => ({ ok: true }) } })
       assert.ok(['completed', 'unknown', 'failed'].includes(r.outcome.status), `${s} → ${r.outcome.status}`)
     }
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('a DROPPED signal write yields an explicit failed outcome — never a false completed', () => {
+  const dir = tmp()
+  try {
+    mkdirSync(join(dir, 'signals.jsonl'))   // force the signals append to drop (EISDIR)
+    const r = runLoop({ summary: 'check drift' },
+      { dir, now: fixedNow, idGen: ids(), handlers: { doctor: () => ({ ok: true }) } })
+    assert.equal(r.outcome.status, 'failed')                 // not 'completed'
+    assert.match(r.outcome.error, /dropped/)
+    assert.equal(r.signal.ok, false)                         // the drop is acknowledged
+    assert.ok(r.feedback.some((l) => /DROPPED/.test(l)))     // and visible
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 

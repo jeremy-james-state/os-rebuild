@@ -28,6 +28,12 @@ test('deterministic: same item → same score', () => {
                    estimate({ type: 'build', confidence: 'high', target: 'x' }))
 })
 
+test('rank tolerates a missing/null backlog (yields [], never throws)', () => {
+  assert.deepEqual(rank(null), [])
+  assert.deepEqual(rank(undefined), [])
+  assert.deepEqual(rank('nonsense'), [])
+})
+
 test('rank orders a backlog highest-priority first, stable on ties', () => {
   const ranked = rank([
     { type: 'unknown', confidence: 'low', target: 'unknown' },

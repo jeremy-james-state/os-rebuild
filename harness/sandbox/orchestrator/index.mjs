@@ -17,7 +17,7 @@
  * so the run is followable end-to-end and the data layer fills as it goes. The returned
  * `feedback` lines are what the session-feedback hook prints into the chat.
  */
-import { execFileSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,11 +31,17 @@ export const REPO_ROOT = resolve(HERE, '..', '..', '..')
 
 /** Dispatch table: target → live handler. ONLY real handlers live here. */
 export const HANDLERS = {
-  // The doctor is a real, wired component — run the drift-check for real.
+  // The doctor is a real, wired component — run the drift-check for real. spawnSync (not
+  // execFileSync) with a hard timeout: a non-zero exit (doctor is fail-closed on drift) still
+  // yields parseable stdout, so the dispatch is 'completed' and the drift detail rides in the
+  // result — the visible outcome no longer flips completed↔failed on repo state. A hang hits
+  // the timeout → r.error → 'failed', never blocking the turn.
   doctor: () => {
-    const out = execFileSync(process.execPath, [join(REPO_ROOT, 'governance/enforcement/doctor.mjs'), '--json'],
-      { encoding: 'utf8', cwd: REPO_ROOT })
-    const { findings } = JSON.parse(out)
+    const r = spawnSync(process.execPath, [join(REPO_ROOT, 'governance/enforcement/doctor.mjs'), '--json'],
+      { encoding: 'utf8', cwd: REPO_ROOT, timeout: 5000 })
+    if (r.error) throw r.error
+    let findings = []
+    try { ({ findings } = JSON.parse(r.stdout || '{"findings":[]}')) } catch { findings = [] }
     const errors = findings.filter((f) => f.severity === 'ERROR').length
     return { ok: errors === 0, errors, warnings: findings.filter((f) => f.severity === 'WARN').length }
   },
@@ -64,6 +70,16 @@ export function runLoop(input = {}, opts = {}) {
   // hop 1: extract
   const sExtract = span(trace, 'extract', { id: idGen(), now })
   const sig = w('signals', stamp({ kind: 'signal', phase: 'received', summary, source: input.source || 'cli' }, sExtract, tuple))
+  if (!sig.ok) {
+    // the signal write was DROPPED — do NOT pretend it was captured. Record an explicit
+    // terminal failed run (with the stable id) so nothing fails silently.
+    feedback.push(`signal DROPPED (#${sig.n}) — ${sig.reason || 'write failed'}`)
+    const sRouteD = span(sExtract, 'route', { id: idGen(), now })
+    const outcomeD = { status: 'failed', target: null, error: `signal write dropped: ${sig.reason || 'unknown'}` }
+    const runD = w('runs', stamp({ kind: 'run', signal: sig.id, target: null, status: 'failed', summary, outcome: outcomeD }, sRouteD, tuple))
+    feedback.push('outcome: failed — signal not durably captured')
+    return { trace, signal: sig, classification: null, estimate: null, outcome: outcomeD, run: runD, feedback, oneLine: `⟶ ${feedback.join('  ·  ')}` }
+  }
   feedback.push(`signal extracted (#${sig.n})`)
 
   // hop 2: classify

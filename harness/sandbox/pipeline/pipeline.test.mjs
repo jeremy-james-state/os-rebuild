@@ -57,6 +57,20 @@ test('un-gated stages flow without stopping', () => {
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
+test('a work id containing the separator (::) still resumes after approval (no deadlock)', () => {
+  const dir = tmp()
+  try {
+    const id = 'work::42'                                // wid itself contains '::'
+    let r = runChain({ id, summary: 'compound id' }, { dir, now: fixedNow })
+    assert.equal(r.stage, 'pre-frame')
+    assert.equal(r.gateId, 'work::42::pre-frame')
+    approve(r.gateId, { dir, now: fixedNow })
+    r = runChain({ id, summary: 'compound id' }, { dir, now: fixedNow })
+    assert.equal(r.status, 'awaiting-gate')
+    assert.equal(r.stage, 'frame')                       // advanced — not stuck at pre-frame
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
 test('approve is idempotent', () => {
   const dir = tmp()
   try {
