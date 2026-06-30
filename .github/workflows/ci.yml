@@ -1,0 +1,25 @@
+name: CI
+
+# The doctor runs at the merge: drift-check + tests must pass before main moves.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['**']
+
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Harness doctor (drift-check, fail-closed)
+        run: node governance/enforcement/doctor.mjs
+      - name: Governance check (self-governance, fail-closed)
+        run: node governance/enforcement/governance-check.mjs
+      - name: Structure check (WARN-only)
+        run: node governance/enforcement/structure-check.mjs
+      - name: Harness + governance tests
+        run: node --test 'harness/**/*.test.mjs' 'governance/**/*.test.mjs'

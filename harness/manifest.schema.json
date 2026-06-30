@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://os.harness/manifest.schema.json",
+  "title": "OS Harness Manifest",
+  "description": "Machine-readable source of truth for the harness RAILS (states, kinds, executionContexts, boundary, sequence, chain, environment, governance). Component ROWS live in harness/registry.json (harness/registry.schema.json). The drift-check (governance/enforcement/doctor.mjs) merges both and validates reality against them.",
+  "type": "object",
+  "required": ["manifestVersion", "updated", "states", "kinds", "executionContexts", "boundary", "chain", "environment", "governance"],
+  "additionalProperties": false,
+  "properties": {
+    "manifestVersion": { "type": "string", "description": "Schema/format version of this manifest" },
+    "harnessVersion": { "type": "string", "description": "Semver of the harness boundary itself; bumps on every state change" },
+    "versioning": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "How the harness is versioned and where its changelog lives"
+    },
+    "updated": { "type": "string", "description": "ISO date of last manual edit" },
+    "description": { "type": "string" },
+    "sequence": {
+      "type": "object",
+      "description": "The canonical end-to-end shape (session -> ... -> observe). Each step maps to a component and/or chain stage.",
+      "required": ["steps"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["order", "id", "phase"],
+            "additionalProperties": false,
+            "properties": {
+              "order": { "type": "integer" },
+              "id": { "type": "string" },
+              "phase": { "type": "string" },
+              "component": { "type": "string", "description": "id of a declared component" },
+              "stage": { "type": "string", "description": "id of a declared chain stage" },
+              "produces": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "description": "The promotion axis. A component is in exactly one state.",
+      "items": { "enum": ["production", "staging", "sandbox", "planned", "quarantined", "retired"] }
+    },
+    "kinds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "executionContexts": {
+      "type": "array",
+      "description": "Every environment the harness is allowed to run in. Laws key off context identity, not absolute path.",
+      "items": {
+        "type": "object",
+        "required": ["id", "root", "canonical", "host"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "root": { "type": "string", "description": "Absolute root path in this context" },
+          "canonical": { "type": "boolean" },
+          "host": { "type": "string" },
+          "identity": { "type": "string", "description": "Stable identity used instead of path: git remote or sentinel" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "boundary": {
+      "type": "object",
+      "required": ["model", "productionDir", "sandboxDir", "note"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string" },
+        "productionDir": { "type": "string" },
+        "sandboxDir": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "chain": {
+      "type": "object",
+      "required": ["stages"],
+      "additionalProperties": false,
+      "properties": {
+        "stages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "status"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string" },
+              "status": { "enum": ["present", "partial", "missing"] },
+              "contract": { "type": "string" },
+              "surface": { "type": "string" },
+              "owner": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "The Claude Code / host environment the harness depends on. Anything here that is not pinned in-repo is a determinism gap the doctor flags."
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

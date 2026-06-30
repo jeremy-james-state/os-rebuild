@@ -1,0 +1,757 @@
+{
+  "registryVersion": "1.0",
+  "updated": "2026-06-30",
+  "description": "Component ROWS — the system of record for the OS harness. The rails (states, kinds, executionContexts, boundary, sequence, chain, environment, governance) live in harness/manifest.json. The doctor + render merge the two. Per-component contract.json attaches on promotion (deferred while components are state=planned). Validated by harness/registry.schema.json.",
+  "components": [
+    {
+      "id": "tagger",
+      "kind": "gate",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/tagger/",
+      "role": "Signal extractor: derives routing tags from a step (purpose, deterministic, needsIndependence, breadth, heavyOffThread, producesReasoning)",
+      "trigger": "Before the Orchestrator routes each step",
+      "wiredBy": [
+        "local-tracker/orchestrator.mjs"
+      ],
+      "tests": "local-tracker/tagger.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "evidence": "Deterministic heuristic; the 'signal extractor' the chain begins with"
+    },
+    {
+      "id": "clarify-gate",
+      "kind": "gate",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/clarify-gate/",
+      "role": "Pre-Orchestrator classifier: is the Clarifier worthwhile (fuzzy + grounded)? Routes run-clarifier / gather-info / self-state / ground-first",
+      "trigger": "Before clarifier / decomposition",
+      "wiredBy": [
+        "local-tracker/decomposer.mjs"
+      ],
+      "tests": "local-tracker/clarify-gate.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "clarifier",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/clarifier/",
+      "entry": "clarifier/index.mjs",
+      "role": "Transcript/request -> grounded End State (goal, conditions, assumptions, definition of done)",
+      "trigger": "Chain stage 1",
+      "wiredBy": [
+        "local-tracker/decomposer.mjs",
+        "local-tracker/pipeline.mjs"
+      ],
+      "tests": "clarifier/*.test.mjs (14 files)",
+      "dependsOn": [
+        "clarify-gate"
+      ],
+      "owner": "harness",
+      "flags": [
+        "two meanings stores (clarifier.db vs confirmed-meanings.db) pending unification"
+      ]
+    },
+    {
+      "id": "scoper",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/scoper/",
+      "entry": "scoper/index.mjs",
+      "role": "End State -> bounded, viable Scope (in/out items with traceability)",
+      "trigger": "Chain stage 2",
+      "wiredBy": [
+        "local-tracker/pipeline.mjs"
+      ],
+      "tests": "scoper/*.test.mjs (5 files)",
+      "dependsOn": [
+        "clarifier"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "planner",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/planner/",
+      "entry": "planner/index.mjs",
+      "role": "Scope -> atomic, ordered, rubric-checked build plan",
+      "trigger": "Chain stage 3",
+      "wiredBy": [
+        "local-tracker/pipeline.mjs"
+      ],
+      "tests": "planner/*.test.mjs (5 files)",
+      "dependsOn": [
+        "scoper"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "builder",
+      "kind": "engine-agent",
+      "type": "orchestrator",
+      "state": "planned",
+      "path": "harness/orchestrators/builder/",
+      "entry": "builder/index.mjs",
+      "role": "Coordinates plan execution: build-gate -> provision -> topo-sort -> per-step execute/verify/retry/reframe/escalate -> acceptance",
+      "trigger": "Chain stage 4 (Build)",
+      "wiredBy": [
+        "local-tracker/pipeline.mjs"
+      ],
+      "tests": "builder/full-stack.integration.test.mjs",
+      "dependsOn": [
+        "planner",
+        "executor",
+        "verifier",
+        "provisioner"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "executor",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/executor/",
+      "entry": "executor/index.mjs",
+      "role": "Executes one atomic step: mechanical -> template codegen, novel -> model; confines writes to worktree",
+      "trigger": "Per build step",
+      "wiredBy": [
+        "builder/builder.mjs"
+      ],
+      "tests": "executor/executor.test.mjs",
+      "dependsOn": [
+        "build-templates"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "build-templates",
+      "kind": "tool",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/build-templates/",
+      "entry": "build-templates/index.mjs",
+      "role": "Bounded catalog of deterministic codegen templates",
+      "trigger": "Mechanical build steps",
+      "wiredBy": [
+        "executor/executor.mjs"
+      ],
+      "tests": "build-templates/build-templates.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "verifier",
+      "kind": "tool",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/verifier/",
+      "entry": "verifier/index.mjs",
+      "role": "Runs shell/predicate checks on produced artifacts; honest about unrunnable checks",
+      "trigger": "After each build step and in Tester",
+      "wiredBy": [
+        "builder/builder.mjs",
+        "tester/tester.mjs"
+      ],
+      "tests": "verifier/verifier.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "tester",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/tester/",
+      "entry": "tester/index.mjs",
+      "role": "Whole-build acceptance: rules + deterministic check-generation + adversarial subagent review; never model-verifies",
+      "trigger": "Chain stage 5 (Testing gate)",
+      "wiredBy": [
+        "local-tracker/pipeline.mjs"
+      ],
+      "tests": "tester/tester.test.mjs",
+      "dependsOn": [
+        "verifier"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "deployer",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/deployer/",
+      "entry": "deployer/index.mjs",
+      "role": "Deploy gate + sign-off + verify + auto-rollback; auto only for preview/staging/non-client/low-impact",
+      "trigger": "Chain stage 6 (Deploy)",
+      "wiredBy": [],
+      "tests": "deployer/full-chain.integration.test.mjs",
+      "dependsOn": [
+        "tester"
+      ],
+      "owner": "harness",
+      "flags": [
+        "built but not wired into a live flow; no formal Deploy stage contract yet"
+      ]
+    },
+    {
+      "id": "provisioner",
+      "kind": "tool",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/provisioner/",
+      "entry": "provisioner/index.mjs",
+      "role": "Prepares an isolated git worktree as a build target; teardown",
+      "trigger": "Builder build-gate",
+      "wiredBy": [],
+      "tests": "provisioner/provisioner.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "flags": [
+        "not yet called by Builder"
+      ]
+    },
+    {
+      "id": "orchestrator",
+      "kind": "router",
+      "type": "orchestrator",
+      "state": "planned",
+      "path": "harness/orchestrators/orchestrator/",
+      "role": "Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control",
+      "trigger": "Every routed step",
+      "wiredBy": [
+        "auto-mode/run.mjs",
+        "local-tracker/pipeline.mjs"
+      ],
+      "tests": "local-tracker/orchestrator.test.mjs",
+      "dependsOn": [
+        "tagger",
+        "route"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "route",
+      "kind": "router",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/route/",
+      "role": "Pure routing policy: tags -> tier ladder; verification never uses model; fail-safe defaults to script",
+      "trigger": "Called by Orchestrator",
+      "wiredBy": [
+        "local-tracker/orchestrator.mjs"
+      ],
+      "tests": "local-tracker/route.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "decomposer",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/decomposer/",
+      "role": "Top-down task-tree builder: confidence gate -> cut -> atomicity -> depth budget -> store -> dependencies",
+      "trigger": "On unit activation",
+      "wiredBy": [
+        "local-tracker/server.mjs"
+      ],
+      "tests": "local-tracker/decomposer.test.mjs",
+      "dependsOn": [
+        "clarify-gate"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "overseer",
+      "kind": "governance",
+      "type": "orchestrator",
+      "state": "planned",
+      "path": "harness/orchestrators/overseer/",
+      "role": "Management agent: scheduling (DAG/critical path), determinism audit, scope-creep, convergence, snapshot",
+      "trigger": "Overseer pass after every write",
+      "wiredBy": [
+        "local-tracker/server.mjs"
+      ],
+      "tests": "overseer/overseer.test.mjs (2032 lines)",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "local-tracker-server",
+      "kind": "runtime",
+      "type": "service",
+      "state": "planned",
+      "path": "harness/services/local-tracker-server/",
+      "role": "Zero-dependency SQLite server on port 4319: event store + reducer + overseer loop; spawns decomposer/judge/learning workers",
+      "trigger": "Always running (launchd service on local)",
+      "wiredBy": [],
+      "tests": "local-tracker/server.test.mjs",
+      "dependsOn": [
+        "store",
+        "reducer",
+        "overseer"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "store",
+      "kind": "store",
+      "type": "service",
+      "state": "planned",
+      "path": "harness/services/store/",
+      "role": "Append-only event store (work.db) + observation store (obs.db: flags, agent_runs, chain_runs)",
+      "trigger": "Every state change",
+      "wiredBy": [
+        "local-tracker/server.mjs"
+      ],
+      "tests": "local-tracker/store.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "reducer",
+      "kind": "store",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/reducer/",
+      "role": "Stateless read model: derives current unit state and parent/child tree from the event log",
+      "trigger": "On /api reads",
+      "wiredBy": [
+        "local-tracker/server.mjs"
+      ],
+      "tests": "local-tracker/reducer.test.mjs",
+      "dependsOn": [
+        "store"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "pipeline",
+      "kind": "runtime",
+      "type": "orchestrator",
+      "state": "planned",
+      "path": "harness/orchestrators/pipeline/",
+      "role": "Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence",
+      "trigger": "POST /api/build",
+      "wiredBy": [
+        "local-tracker/server.mjs"
+      ],
+      "tests": "local-tracker/pipeline.test.mjs",
+      "dependsOn": [
+        "clarifier",
+        "scoper",
+        "planner",
+        "builder",
+        "tester"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "auto-mode",
+      "kind": "runtime",
+      "type": "orchestrator",
+      "state": "planned",
+      "path": "harness/orchestrators/auto-mode/",
+      "entry": "auto-mode/index.mjs",
+      "role": "Away-work runner: select reversible/valuable units -> playback -> runtime select -> fan out thin workers under a concurrency cap",
+      "trigger": "./auto / ./fast",
+      "wiredBy": [
+        "auto-mode/run.mjs"
+      ],
+      "tests": "auto-mode/*.test.mjs (7 files)",
+      "dependsOn": [
+        "orchestrator",
+        "away-gate"
+      ],
+      "owner": "harness",
+      "flags": [
+        "approve-mode trusted; tool-use execution trust still pending (Gate B)"
+      ]
+    },
+    {
+      "id": "context-window-monitor",
+      "kind": "observability",
+      "type": "service",
+      "state": "planned",
+      "path": "harness/services/context-window-monitor/",
+      "entry": "context-window-monitor/index.mjs",
+      "role": "Polls Claude/Codex transcript telemetry; adaptive rotation thresholds; writes trigger events; can auto-prepare handoff",
+      "trigger": "Continuous watch / threshold crossing",
+      "wiredBy": [
+        "context-window/session-start-hook.mjs"
+      ],
+      "tests": "context-window/*.test.mjs (4 files)",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "decision-enforcer",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/decision-enforcer/",
+      "role": "Pre-push gate: status truth, session registry, live-path, branch ownership, post-handoff, write-branch, template conformance, chain-state attestation",
+      "trigger": "git push (via .githooks/pre-push)",
+      "wiredBy": [
+        ".githooks/pre-push"
+      ],
+      "tests": "overseer/decision-enforcer.test.mjs (15 tests)",
+      "dependsOn": [
+        "session-governor",
+        "template-conformance",
+        "chain-state-attest",
+        "write-branch-audit"
+      ],
+      "owner": "harness",
+      "flags": [
+        "only fires if core.hooksPath is configured; not configured in fresh clones / cloud"
+      ]
+    },
+    {
+      "id": "session-governor",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/session-governor/",
+      "role": "Active-session registry, duplicate-topic collision guard, push visibility, post-handoff write caution",
+      "trigger": "startup + pre-push",
+      "wiredBy": [
+        "startup",
+        ".githooks/pre-push"
+      ],
+      "tests": "overseer/session-governor.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "template-conformance",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/template-conformance/",
+      "role": "Frame/Scope/Plan must conform to templates; 4 visibility states (hidden-structural, hidden-needs-agent-review, ready-for-human-review, approved); spillover routing",
+      "trigger": "Frame/Scope/Plan create/review + pre-push",
+      "wiredBy": [
+        "overseer/decision-enforcer.mjs"
+      ],
+      "tests": "overseer/template-conformance.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "chain-state-attest",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/chain-state-attest/",
+      "role": "Deterministic digest over STATUS chain/pre-frame/queue; blocks chain edits unless attestation matches HEAD",
+      "trigger": "pre-push on chain artifacts",
+      "wiredBy": [
+        "overseer/decision-enforcer.mjs"
+      ],
+      "tests": "overseer/chain-state-attest.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "write-branch-audit",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/write-branch-audit/",
+      "role": "Asserts the active session branch matches the git write branch",
+      "trigger": "pre-push",
+      "wiredBy": [
+        "overseer/decision-enforcer.mjs"
+      ],
+      "tests": "overseer/write-branch-audit.test.mjs",
+      "dependsOn": [
+        "session-governor"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "repo-hygiene",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/repo-hygiene/",
+      "role": "Audits and prunes merged session branches/worktrees",
+      "trigger": "Overseer hygiene pass / manual",
+      "wiredBy": [],
+      "tests": "overseer/repo-hygiene.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "approval-runner",
+      "kind": "governance",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/approval-runner/",
+      "role": "Turns template/git/host-capability signals into durable approval records (SQLite + JSONL); exact-file commits on session branches only",
+      "trigger": "Approval frontier scan",
+      "wiredBy": [
+        "approvals"
+      ],
+      "tests": "overseer/approvals/approvals.test.mjs",
+      "dependsOn": [
+        "template-conformance",
+        "session-governor"
+      ],
+      "owner": "harness",
+      "flags": [
+        "no read API / unified violation dashboard yet (Law 11 partial)"
+      ]
+    },
+    {
+      "id": "pre-push-hook",
+      "kind": "hook",
+      "type": "hook",
+      "state": "planned",
+      "path": "harness/hooks/pre-push-hook/",
+      "role": "Git pre-push entry point that delegates to decision-enforcer",
+      "trigger": "git push",
+      "wiredBy": [
+        "scripts/install-managed-hooks.sh"
+      ],
+      "tests": "",
+      "dependsOn": [
+        "decision-enforcer"
+      ],
+      "owner": "harness",
+      "flags": [
+        "core.hooksPath NOT configured by default -> hook may not fire; install-managed-hooks.sh is manual"
+      ]
+    },
+    {
+      "id": "away-gate",
+      "kind": "hook",
+      "type": "hook",
+      "state": "planned",
+      "path": "harness/hooks/away-gate/",
+      "role": "PreToolUse safety gate for Auto Mode: allow read/test/git-safe/draft, deny deploy/external-send/money/destructive",
+      "trigger": "Every tool call while Auto Mode active",
+      "wiredBy": [
+        ".claude/away-gate-settings.snippet.json"
+      ],
+      "tests": "hooks/away-gate.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "flags": [
+        "snippet exists but not merged into an active settings.json -> not wired by default"
+      ]
+    },
+    {
+      "id": "approve-hook",
+      "kind": "hook",
+      "type": "hook",
+      "state": "planned",
+      "path": "harness/hooks/approve-hook/",
+      "role": "UserPromptSubmit hook intercepting 'approve <item> <stage>' prompts",
+      "trigger": "Prompt submit",
+      "wiredBy": [],
+      "tests": "",
+      "dependsOn": [],
+      "owner": "harness",
+      "flags": [
+        "built but never wired; untested"
+      ]
+    },
+    {
+      "id": "capture-hook",
+      "kind": "hook",
+      "type": "hook",
+      "state": "planned",
+      "path": "harness/hooks/capture-hook/",
+      "role": "UserPromptSubmit hook for +task / +list instant capture (no model turn)",
+      "trigger": "Prompt submit",
+      "wiredBy": [
+        "local-tracker/.claude/settings.json"
+      ],
+      "tests": "",
+      "dependsOn": [
+        "local-tracker-server"
+      ],
+      "owner": "harness",
+      "flags": [
+        "untested"
+      ]
+    },
+    {
+      "id": "session-start-hook",
+      "kind": "hook",
+      "type": "hook",
+      "state": "planned",
+      "path": "harness/hooks/session-start-hook/",
+      "role": "SessionStart: validate workspace binding, fail-closed on wrong checkout, inject continuity packet",
+      "trigger": "Session start",
+      "wiredBy": [
+        ".claude/settings.local.json (untracked)"
+      ],
+      "tests": "context-window/session-start-hook.test.mjs",
+      "dependsOn": [
+        "context-window-monitor"
+      ],
+      "owner": "harness",
+      "flags": [
+        "hardcodes local path -> fails closed in cloud context; must move to repo-identity (both-first-class decision)"
+      ]
+    },
+    {
+      "id": "harness-doctor",
+      "kind": "governance",
+      "type": "runner",
+      "state": "staging",
+      "path": "governance/enforcement/doctor.mjs",
+      "role": "Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule",
+      "trigger": "harness doctor / pre-push (to be wired in Phase 1)",
+      "wiredBy": [],
+      "tests": "governance/enforcement/doctor.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "flags": [
+        "new in this pass; not yet wired into pre-push"
+      ]
+    },
+    {
+      "id": "researcher",
+      "kind": "experiment",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/researcher/",
+      "role": "Discovery/research lane: grounded knowledge with cited sources",
+      "trigger": "n/a",
+      "wiredBy": [],
+      "tests": "researcher/research-schema.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "flags": [
+        "schema only; no agent entry point; unwired"
+      ]
+    },
+    {
+      "id": "explainer",
+      "kind": "experiment",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/explainer/",
+      "role": "Explains a target file as a Frame; grounded, never invents",
+      "trigger": "n/a",
+      "wiredBy": [],
+      "tests": "explainer/explainer.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "flags": [
+        "built but never called by any live flow"
+      ]
+    },
+    {
+      "id": "nightly",
+      "kind": "experiment",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/nightly/",
+      "role": "Retrospective optimizer: combs prior-day agent_runs for inefficiencies; proposes, never auto-applies",
+      "trigger": "Overseer nightly pass",
+      "wiredBy": [
+        "local-tracker/server.mjs"
+      ],
+      "tests": "nightly/nightly.test.mjs",
+      "dependsOn": [
+        "store"
+      ],
+      "owner": "harness",
+      "flags": [
+        "no scheduled job registered"
+      ]
+    },
+    {
+      "id": "refinement",
+      "kind": "experiment",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/refinement/",
+      "role": "Overnight prototype/eval corpus (rubric v2, decomposer prototypes)",
+      "trigger": "n/a",
+      "wiredBy": [],
+      "tests": "",
+      "dependsOn": [],
+      "owner": "experiments",
+      "flags": [
+        "~26M generated artifacts; candidate for sandbox/ relocation"
+      ]
+    },
+    {
+      "id": "clarifier-eval",
+      "kind": "experiment",
+      "type": "library",
+      "state": "planned",
+      "path": "harness/lib/clarifier-eval/",
+      "role": "Clarifier gate bake-off corpus and calibration",
+      "trigger": "n/a",
+      "wiredBy": [],
+      "tests": "",
+      "dependsOn": [],
+      "owner": "experiments",
+      "flags": [
+        "~15M; candidate for sandbox/ relocation"
+      ]
+    },
+    {
+      "id": "interface-build",
+      "kind": "experiment",
+      "type": "runner",
+      "state": "retired",
+      "path": "interface-build/",
+      "role": "Legacy work-tracker UI design-system build",
+      "trigger": "n/a",
+      "wiredBy": [],
+      "tests": "interface-build/test.mjs",
+      "dependsOn": [],
+      "owner": "experiments",
+      "flags": [
+        "superseded by Dashboard/Command Center direction"
+      ]
+    },
+    {
+      "id": "spike",
+      "kind": "experiment",
+      "type": "runner",
+      "state": "planned",
+      "path": "harness/runners/spike/",
+      "role": "Ad-hoc worker stub",
+      "trigger": "n/a",
+      "wiredBy": [],
+      "tests": "",
+      "dependsOn": [],
+      "owner": "experiments"
+    },
+    {
+      "id": "router",
+      "kind": "orchestrator",
+      "type": "orchestrator",
+      "state": "staging",
+      "path": "harness/orchestrators/router.mjs",
+      "role": "Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path)",
+      "trigger": "a signal arrives at a door",
+      "wiredBy": [],
+      "tests": "harness/orchestrators/router.test.mjs",
+      "dependsOn": [
+        "harness-doctor"
+      ],
+      "owner": "harness",
+      "flags": [
+        "minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step"
+      ]
+    }
+  ]
+}

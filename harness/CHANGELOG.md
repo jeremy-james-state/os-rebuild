@@ -1,0 +1,21 @@
+# Harness Changelog
+
+Version control for the harness boundary itself. Every change to a component's
+**state** (promotion/demotion), to the **boundary**, or to the **sequence/shape**
+bumps `harnessVersion` in `harness/manifest.json` and adds a line here in the same commit.
+
+Scheme (semver):
+- **MAJOR** — boundary or contract change (what counts as "the harness" changes).
+- **MINOR** — a component is added, promoted, or demoted (a `state` change).
+- **PATCH** — metadata, wiring, or doc fix with no state change.
+
+| Version | Date | Change |
+|---|---|---|
+| 0.8.0 | 2026-06-30 | **MAJOR (format/boundary): split the system of record.** Carved the component rows out of `manifest.json` into a new **`harness/registry.json`** (+ `registry.schema.json`); `manifest.json` keeps the rails (states, kinds, executionContexts, boundary, sequence/blueprint, chain, environment, governance) and drops `components` from its schema. The doctor + `render.mjs` now **merge** the two (`{...manifest, components: registry.components}`), so every check and the MD twin are unchanged — `manifest.md` is byte-identical except the version header. Added a fail-closed `registry-unreadable` check + tests. `manifestVersion` 1.0→2.0, new `registryVersion` 1.0. Per-component `contract.json` still deferred until components leave `planned`. Completes the `registry.json` the docs already referenced. |
+| 0.7.0 | 2026-06-30 | Harness organized **by type, not maturity** (per the locked component model). Replaced the state-folders `harness/core/` + `harness/sandbox/` with type-folders `orchestrators/ runners/ services/ hooks/ lib/`; added a `type` field to every component (orchestrator\|runner\|service\|hook\|library) and repathed all `planned` components into their type-folder. Promotion `state` is now a manifest field only. Added `harness/map.md` (pointer) + per-type READMEs; updated `manifest.schema.json` (added `type`, fixed the `states` enum to include `planned`) and `render.mjs`. `registry.json` + per-component `contract.json` enforcement is the next step. |
+| 0.6.0 | 2026-06-30 | Relocated the frozen `archive/` tier out to the separate [`jeremy-james-state/os-archive`](https://github.com/jeremy-james-state/os-archive) repo (`os-v1/`, `harness/`, `frame-gate-local/`) and removed it from this repo — shrinks the operational repo (~60MB / 2795 files) so it clones and loads fast. The inherited past is no longer a top-level tier; it's pulled in on demand via `add_repo`. Updated the canonical schema, `structure-check`, `permissions.json` (`frozen` now empty), and doc references accordingly. Nothing executable depended on `archive/`. |
+| 0.5.0 | 2026-06-30 | Phase 3 repo-structure decision: moved verifier executables/tests into `governance/enforcement/` (`doctor`, `governance-check`) and rewired router/CI to call the governance-enforcement paths. Added `structure-check` (WARN-only) to enforce canonical top-level tiers and record structure drift without blocking. |
+| 0.4.0 | 2026-06-30 | **First wired path.** Added the `router` (orchestrator): a signal is classified, routed to a component, runs, and lands a terminal outcome (completed/unknown/failed) in `record/runs.jsonl` with the four-tuple. No silent drops. The pivot from describing to building. |
+| 0.3.0 | 2026-06-30 | Locked the harness boundary (`harness/` = executing code; `governance/`/`docs/`/`record/`/`state/`/`archive/` are the OS around it; "frozen" is a property, not a folder — see `docs/BOUNDARY.md`). Adopted the OS folder structure: `governance/` (rules/agents/design/permissions), `docs/` (+ design references), `record/` (governance ledger), `state/`, `archive/` (was `reference/`). Stage 1 of full-architecture adoption. |
+| 0.2.0 | 2026-06-30 | Repo reorg for OS v2 clean slate: scaffolded `harness/core` + `harness/sandbox` + `method/` + `reference/`. Added the `planned` state; all components except the doctor set to `planned` (sourced from `reference/archive-os-v1`, to be promoted in deliberately). |
+| 0.1.0 | 2026-06-30 | Initial manifest. Inventoried 42 components into states (production/staging/sandbox/quarantined/retired), declared the end-to-end sequence, and added the `doctor` drift-check + MD twin. Boundary declared; no code relocated. |

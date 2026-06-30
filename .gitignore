@@ -1,0 +1,32 @@
+# Secrets — never commit
+.env
+.env.*
+*.env
+
+# Dependencies / regenerable
+node_modules/
+
+# OS / editor noise
+.DS_Store
+*.tmp
+
+# Obsidian per-machine view state (local only)
+.obsidian/
+
+# SQLite transient
+*.db-shm
+*.db-wal
+
+# Rebuildable projections (state/)
+state/*.db
+state/*.db-*
+state/*.jsonl
+
+# Append-only runtime streams (record/) — durable home is the Data Layer.
+# Bulky/regenerable streams (runs, signals, observations) are gitignored, BUT the
+# governance ledger stays version-controlled (small, decision-level audit trail,
+# validated by governance-check at the merge gate).
+record/*.jsonl
+!record/governance-ledger.jsonl
+record/*.db
+record/*.db-*

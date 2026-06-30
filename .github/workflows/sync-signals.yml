@@ -1,0 +1,32 @@
+name: Sync signals to Supabase
+
+# The signal-ledger candidate's hosted-projection sync. The Claude container can't reach
+# Supabase directly (network policy), so the push of record/signals.jsonl is the trigger and
+# CI does the upsert. Credentials are GitHub Actions secrets, never in the repo.
+# Candidate wiring (governance/rules/harness-admission.md) — not admitted to the harness.
+
+on:
+  workflow_dispatch: {}   # allow manual "run now" (for verifying the sync on demand)
+  push:
+    paths:
+      - 'record/signals.jsonl'
+      - 'harness/sandbox/signal-ledger/sync.mjs'
+
+# Avoid pile-ups when many turns push in quick succession: keep only the latest run per ref.
+concurrency:
+  group: sync-signals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Upsert signals → Supabase
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://pirwnoingtczdamdirqw.supabase.co' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node harness/sandbox/signal-ledger/sync.mjs

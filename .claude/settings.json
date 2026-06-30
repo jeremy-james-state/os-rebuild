@@ -1,0 +1,15 @@
+{
+  "$comment": "Tracked Claude Code session config. Wires the signal-ledger CANDIDATE (harness/sandbox/) to fire on every turn. Capture is observe-only and fail-open: intake.mjs never blocks a turn. A wired candidate is still a candidate (governance/rules/harness-admission.md) — not admitted to the harness. Hooks load at session start, so capture begins next session.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/signal-ledger/intake.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

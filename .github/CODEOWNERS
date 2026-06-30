@@ -1,0 +1,10 @@
+# Code owners — require owner review before merge to main.
+# Everything defaults to the owner; critical paths are explicit.
+*                  @jeremy-james-state
+
+# The harness (executing code) and its law
+/harness/          @jeremy-james-state
+/governance/       @jeremy-james-state
+
+# The locked boundary
+/docs/BOUNDARY.md  @jeremy-james-state
