@@ -1,39 +1,79 @@
-# OS — Operating System
+# os-rebuild — the Harness foundation, wired and watchable
 
-**OS = the whole; the Harness = the governed core inside it.** Clean v2 consolidation.
+A rebuild of the [OS v2 capstone](https://github.com/jeremy-james-state/OS) into a clean
+repo, focused on a **foundation you can trust**: three bounded layers, a signal loop that is
+*actually wired, running, and tested*, a *readable* data layer, and two guarantees you can
+watch hold — **nothing fails silently** and **no agent is referenced that isn't really there**.
 
-## The boundary (the edge)
+## Watch it work
 
-**The Harness is the `harness/` folder** — everything that executes. Everything else
-is the OS *around* it. See [`docs/BOUNDARY.md`](docs/BOUNDARY.md).
+In a session opened here, type a command — the loop runs and prints its trace:
 
-| Path | In the harness? | What |
-|---|---|---|
-| `harness/` | **yes** | the running code — components by type (`orchestrators/ runners/ services/ hooks/ lib/`); the source of truth is `registry.json` (component rows) + `manifest.json` (the rails), merged by `doctor.mjs` the drift-check. "Frozen" (the spine) is a component property. |
-| `governance/` | no | the **law** the harness enforces: `rules/` (the rules folder), `decisions/` (binding ADRs), `agents/`, `permissions.json` |
-| `docs/` | no | human knowledge: charter, boundary, principles, and `docs/architecture/` (the architecture references) |
-| `record/` | no | append-only **memory / evidence** (the governance ledger) |
-| `state/` | no | rebuildable **projections** (gitignored) |
-| *(separate repo)* [`os-archive`](https://github.com/jeremy-james-state/os-archive) | no | the inherited **past** — prior repos, expanded & searchable (`os-v1/`, `harness/`, `frame-gate-local/`). Split out to keep this repo small; pull in on demand with `add_repo`. |
-
-## Start here
-
-- [`docs/BOUNDARY.md`](docs/BOUNDARY.md) — the locked edge of the harness.
-- [`docs/HARNESS-CHARTER.md`](docs/HARNESS-CHARTER.md) — the constitution.
-- [`harness/manifest.json`](harness/manifest.json) — what the harness is, component by component.
-- [`docs/GOVERNANCE-PIPELINE.md`](docs/GOVERNANCE-PIPELINE.md) — how the harness is allowed to change.
-- [`docs/architecture/`](docs/architecture/) — the prior architecture references driving full adoption.
-
-## Check it
-
-```sh
-node governance/enforcement/doctor.mjs              # is the harness in drift? (fail-closed)
-node governance/enforcement/doctor.mjs --inventory  # what's in the harness, by state
-node --test governance/enforcement/doctor.test.mjs  # prove the drift-check works
+```
+🔁 OS loop  signal extracted (#7)  ·  classified → check (high) → doctor  ·
+            estimated 61 (medium)  ·  routed → doctor  ·  outcome: completed
 ```
 
-## How it grows
+Or run it directly:
+```sh
+node harness/sandbox/orchestrator/index.mjs --demo "check the harness for drift"
+printf '{"prompt":"the deploy failed"}' | node harness/sandbox/session-feedback/index.mjs
+```
 
-Components are promoted from `os-v1/` (in the [`os-archive`](https://github.com/jeremy-james-state/os-archive) repo) into the harness one at a time,
-through the governance pipeline. Until promoted, they're listed in the manifest as
-`planned`, so the full inventory is visible before the code moves in.
+## The three layers (the boundary is the point)
+
+> A thing can only be governed if it has a clear boundary. The three layers are kept
+> physically separate, each with its own overview.
+
+| Layer | Where | What | Overview |
+|---|---|---|---|
+| **governance** — the law + its enforcement | `governance/` | rules, decisions, permissions, candidates, and the checks that bite | [`governance/README.md`](governance/README.md) |
+| **execution** — the running instance | `harness/` | the loop (components by type under `sandbox/`), the manifest/registry | [`harness/sandbox/LOOP.md`](harness/sandbox/LOOP.md) |
+| **data** — append-only truth + readable view | `record/` → `state/os.db` | JSONL logs (signals, runs, classified, estimates, incidents) projected into a readable SQLite table | [`record/README.md`](record/README.md) |
+
+The boundary itself: [`docs/BOUNDARY.md`](docs/BOUNDARY.md) · the constitution:
+[`docs/HARNESS-CHARTER.md`](docs/HARNESS-CHARTER.md).
+
+## The signal loop
+
+```
+extract → classify → estimate → route → outcome (completed | unknown | failed)
+                                                      └─ reconciler raises any limbo
+```
+
+Full map + pieces: [`harness/sandbox/LOOP.md`](harness/sandbox/LOOP.md). Every hop is one
+span on one **trace**; every row carries the four-tuple `session · run · call · branch` and
+lands in the readable `state/os.db`.
+
+**Two guarantees, enforced and demonstrated:**
+- **Nothing fails silently** — every signal ends in a terminal outcome; the `reconciler`
+  raises any that don't.
+- **No ghost agents** — the dispatcher routes only to real handlers; an unknown target is an
+  explicit `unknown`, and `governance/enforcement/no-ghost-agent.mjs` fails the build if any
+  routing target resolves to nothing real.
+
+## Check it (the gate)
+
+```sh
+node governance/enforcement/doctor.mjs            # harness drift-check (fail-closed)
+node governance/enforcement/governance-check.mjs  # self-governance + ledger integrity
+node governance/enforcement/structure-check.mjs   # top-level schema
+node governance/enforcement/no-ghost-agent.mjs    # every routing target is real
+node --test harness/sandbox/**/**.test.mjs governance/enforcement/*.test.mjs
+node harness/sandbox/loop-store/index.mjs project && sqlite3 state/os.db \
+  'select stream,n,status,summary from events order by ts;'   # read the data layer
+```
+
+## How it grows (build to Green, you admit)
+
+Everything in `harness/sandbox/` is a **candidate** built to **Green** (code + contract +
+tests, all checks clean), registered in [`governance/candidates.md`](governance/candidates.md).
+A session may take a candidate to Green; **admission into the harness file is a human step**
+([`governance/rules/harness-admission.md`](governance/rules/harness-admission.md)). Nothing
+self-promotes — that is what stops the creep.
+
+## Status
+
+- **Tier A — foundation + live loop:** ✅ built, 70/70 tests, all checks green, wired + demonstrated.
+- **Tier B — observable web view (Vercel + Supabase):** in progress.
+- **Tier C — real agents + gated chain:** next.
