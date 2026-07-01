@@ -133,6 +133,21 @@ test('G6 [fault-injected]: substantive change without a version bump → doctor 
   } finally { rm(copy) }
 })
 
+test('G6b [fault-injected]: census version bumped WITHOUT re-cutting the release pins → doctor exits 1 (release-pin-drift)', () => {
+  const copy = repoCopy()
+  try {
+    const mPath = join(copy, PATHS.manifest)
+    const m = JSON.parse(readFileSync(mPath, 'utf8'))
+    const target = m.components.find((c) => c.version && c.path)
+    target.version = '99.0.0' // bumped, but the active release still pins the old version
+    target.versions.push({ version: '99.0.0', date: '2026-07-02', change: 'rig probe' })
+    writeFileSync(mPath, JSON.stringify(m, null, 1))
+    const c = runCheck(PATHS.doctor, copy)
+    assert.ok(explicitRed(c), `doctor must go RED when a census version disagrees with the release pins; got ${c.status}`)
+    assert.ok(c.errors.includes('release-pin-drift'), `expected release-pin-drift, got ${c.errors}`)
+  } finally { rm(copy) }
+})
+
 test('G7: every CODEOWNERS path pattern matches a real repo path', () => {
   const lines = readFileSync(join(REPO, '.github/CODEOWNERS'), 'utf8').split('\n')
   const patterns = lines.map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).map((l) => l.split(/\s+/)[0]).filter((p) => p !== '*')

@@ -1,0 +1,54 @@
+{
+  "$comment": "Golden master for the os-reshape behavioural-equivalence gate (F5). Captured pre-reshape; compare with capture.mjs --check. capturedAt/head/info are provenance only — NOT compared.",
+  "capturedAt": "2026-07-01T20:43:38.260Z",
+  "head": "5aee39619aee60ef426c5d1441c3cdfea6e96e95",
+  "entries": {
+    "F1": {
+      "decision": "block",
+      "reason": "🔁 OS loop  signal extracted (#<N>)  ·  classified → check (high) → doctor  ·  estimated 61 (medium)  ·  routed → doctor  ·  outcome: completed  ·  v<V>\n   doctor: 0 errors, <W> warnings — harness not in drift\n[handled by the harness — the model was bypassed for this command]"
+    },
+    "F2": {
+      "event": "UserPromptSubmit",
+      "context": "[HARNESS] Before you saw it, this prompt ran through the signal loop:\n  🔁 OS loop  signal extracted (#<N>)  ·  classified → check (high) → doctor  ·  estimated 61 (medium)  ·  routed → doctor  ·  outcome: completed  ·  v<V>\n  doctor: 0 errors, <W> warnings — harness not in drift\n\nOPERATING PROTOCOL — you are a COMPONENT of this harness, not a free agent:\n1. Begin your reply with the 🔁 trace line above, verbatim.\n2. The loop already classified, routed, and ran any real handler. Report that outcome faithfully — do NOT re-run it, do NOT invent a different result.\n3. Address the user's actual request within the routed intent; do not free-associate beyond it."
+    },
+    "F3": {
+      "startsWithTrace": true
+    },
+    "F4": {
+      "stdout": "  1. signal extracted (#<N>)\n  2. classified → check (high) → doctor\n  3. estimated 61 (medium)\n  4. routed → doctor\n  5. outcome: completed\n  6. v<V>\n"
+    },
+    "G1": {
+      "doctor": {
+        "status": 0,
+        "errors": []
+      },
+      "governance-check": {
+        "status": 0,
+        "errors": []
+      },
+      "structure-check": {
+        "status": 0,
+        "errors": []
+      },
+      "no-ghost-agent": {
+        "status": 0,
+        "errors": []
+      }
+    }
+  },
+  "info": {
+    "G1warns": {
+      "doctor": [
+        "chain-stage-missing",
+        "chain-stage-partial",
+        "mcp-undeclared",
+        "sequence-step-unstable"
+      ],
+      "governance-check": [],
+      "structure-check": [
+        "STRUCTURE_DRIFT"
+      ],
+      "no-ghost-agent": []
+    }
+  }
+}
