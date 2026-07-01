@@ -224,6 +224,16 @@ append-only `record/` evidence *immutable* (tamper-evidence); this is a *write m
 - Data layer stays **append-only** (new streams/records only).
 - Honors the **retired auto-push** lesson: no blanket push.
 
+### 12.1 Binding principle — controls fail closed, observability fails open
+
+A **control** (lock, gate, fence, enforcement check) must **deny on error** — if the guard cannot
+prove the action is safe, it blocks. Only **observability** (traces, version-stamping, the loop
+feedback) may **fail open** so it never wedges a turn. The repo's blanket *"All FAIL-OPEN"* habit
+conflates the two; this principle is **binding on everything built under this spec**: the §9
+write-lock and every §6.2 enforcement check fail closed; only stamping/tracing fails open. (The
+existing confinement fence violates this — see the separate confinement/sandbox spec — which is what
+surfaced the principle.)
+
 ## 13. Decisions locked (this session)
 
 - **A.** Unit of versioning = the existing `component-model.md` component; version **keyed to its
