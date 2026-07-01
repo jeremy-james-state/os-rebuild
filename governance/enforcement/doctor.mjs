@@ -90,6 +90,23 @@ export function checkComponents(manifest, root) {
   return out
 }
 
+// Self-admission guard: a component living under harness/sandbox/ must be state=sandbox.
+// A candidate cannot be declared production/staging/planned while it still sits in the sandbox
+// folder — admission (governance/rules/harness-admission.md) MOVES the code out of sandbox/ into
+// its type-folder. A sandbox-path row claiming a non-sandbox state is drift (self-admission).
+export function checkSandboxContainment(manifest) {
+  const out = []
+  for (const c of manifest.components || []) {
+    const p = (c.path || '').replace(/^\.\//, '')
+    if (p.startsWith('harness/sandbox/') && c.state !== 'sandbox') {
+      out.push(finding('ERROR', 'sandbox-path-non-sandbox-state',
+        `Component '${c.id}' lives under harness/sandbox/ but declares state='${c.state}'.`,
+        `A sandbox-path component must be state=sandbox. Admission moves it out of sandbox/ into its type-folder (governance/rules/harness-admission.md) — never self-admit by flipping state in place.`))
+    }
+  }
+  return out
+}
+
 export function checkUndeclared(manifest, root) {
   const out = []
   const covered = new Set()
@@ -334,6 +351,7 @@ export function runDoctor({ root = DEFAULT_ROOT, manifestPath = DEFAULT_MANIFEST
   const findings = [
     ...checkSchemas(root),
     ...checkComponents(merged, root),
+    ...checkSandboxContainment(merged),
     ...checkUndeclared(merged, root),
     ...checkDependencies(merged),
     ...checkSequence(merged, root),

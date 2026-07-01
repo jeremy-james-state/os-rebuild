@@ -222,18 +222,19 @@
       "id": "orchestrator",
       "kind": "router",
       "type": "orchestrator",
-      "state": "planned",
-      "path": "harness/orchestrators/orchestrator/",
+      "state": "sandbox",
+      "path": "harness/sandbox/orchestrator/",
       "role": "Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control",
       "trigger": "Every routed step",
       "wiredBy": [
-        "auto-mode/run.mjs",
-        "local-tracker/pipeline.mjs"
+        "session-feedback"
       ],
-      "tests": "local-tracker/orchestrator.test.mjs",
+      "tests": "harness/sandbox/orchestrator/orchestrator.test.mjs",
       "dependsOn": [
-        "tagger",
-        "route"
+        "classifier",
+        "estimator",
+        "tracer",
+        "loop-store"
       ],
       "owner": "harness"
     },
@@ -337,14 +338,14 @@
       "id": "pipeline",
       "kind": "runtime",
       "type": "orchestrator",
-      "state": "planned",
-      "path": "harness/orchestrators/pipeline/",
+      "state": "sandbox",
+      "path": "harness/sandbox/pipeline/",
       "role": "Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence",
       "trigger": "POST /api/build",
       "wiredBy": [
         "local-tracker/server.mjs"
       ],
-      "tests": "local-tracker/pipeline.test.mjs",
+      "tests": "harness/sandbox/pipeline/pipeline.test.mjs",
       "dependsOn": [
         "clarifier",
         "scoper",
@@ -752,6 +753,130 @@
       "flags": [
         "minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step"
       ]
+    },
+    {
+      "id": "classifier",
+      "kind": "gate",
+      "type": "library",
+      "state": "sandbox",
+      "path": "harness/sandbox/classifier/",
+      "role": "Signal classifier: signal → {type,intent,confidence,target}; rules-based, deterministic, LLM-swappable behind the same contract",
+      "tests": "harness/sandbox/classifier/classifier.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "estimator",
+      "kind": "gate",
+      "type": "library",
+      "state": "sandbox",
+      "path": "harness/sandbox/estimator/",
+      "role": "Scores a work item so the orchestrator can prioritise — consults only, never dispatches",
+      "tests": "harness/sandbox/estimator/estimator.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "reconciler",
+      "kind": "observability",
+      "type": "service",
+      "state": "sandbox",
+      "path": "harness/sandbox/reconciler/",
+      "role": "Sweeps the data layer for any signal with no terminal run (limbo) → raises an incident; the nothing-fails-silently backstop",
+      "tests": "harness/sandbox/reconciler/reconciler.test.mjs",
+      "dependsOn": [
+        "loop-store"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "tracer",
+      "kind": "observability",
+      "type": "library",
+      "state": "sandbox",
+      "path": "harness/sandbox/tracer/",
+      "role": "Cross-cutting trace context: one traceId per signal, one spanId per hop (linked), plus the four-tuple",
+      "tests": "harness/sandbox/tracer/tracer.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "loop-store",
+      "kind": "store",
+      "type": "service",
+      "state": "sandbox",
+      "path": "harness/sandbox/loop-store/",
+      "role": "The data layer: append-only JSONL truth per stream → readable state/os.db; sole-writer per stream",
+      "tests": "harness/sandbox/loop-store/loop-store.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "session-feedback",
+      "kind": "hook",
+      "type": "hook",
+      "state": "sandbox",
+      "path": "harness/sandbox/session-feedback/",
+      "role": "UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open",
+      "trigger": "UserPromptSubmit",
+      "wiredBy": [
+        ".claude/settings.json"
+      ],
+      "tests": "harness/sandbox/session-feedback/session-feedback.test.mjs",
+      "dependsOn": [
+        "orchestrator",
+        "loop-store"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "confinement",
+      "kind": "gate",
+      "type": "hook",
+      "state": "sandbox",
+      "path": "harness/sandbox/confinement/",
+      "role": "PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec)",
+      "trigger": "PreToolUse",
+      "wiredBy": [
+        ".claude/settings.json"
+      ],
+      "tests": "harness/sandbox/confinement/confinement.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "incident",
+      "kind": "governance",
+      "type": "library",
+      "state": "sandbox",
+      "path": "harness/sandbox/incident/",
+      "role": "Deterministic spine of the incident log: STEPS + missingSteps/isComplete + new/check/list",
+      "tests": "harness/sandbox/incident/incident.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
+    },
+    {
+      "id": "investigator",
+      "kind": "engine-agent",
+      "type": "runner",
+      "state": "sandbox",
+      "path": "harness/sandbox/investigator/",
+      "role": "The first agent: an LLM-driven runner that investigates and fills an incident — evidence-based root cause + the five steps",
+      "dependsOn": [
+        "incident"
+      ],
+      "owner": "harness"
+    },
+    {
+      "id": "signal-ledger",
+      "kind": "store",
+      "type": "library",
+      "state": "sandbox",
+      "path": "harness/sandbox/signal-ledger/",
+      "role": "Captures every real input as a four-tuple-stamped signal appended to the gitignored record/signals.jsonl; filters system-injected turns",
+      "tests": "harness/sandbox/signal-ledger/filter.test.mjs",
+      "dependsOn": [],
+      "owner": "harness"
     }
   ]
 }

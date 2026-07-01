@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   checkComponents, checkDependencies, checkSequence,
-  checkChain, checkMdSync, runDoctor, checkSchemas,
+  checkChain, checkMdSync, runDoctor, checkSchemas, checkSandboxContainment,
 } from './doctor.mjs'
 import { render } from '../../harness/render.mjs'
 import { resolve, dirname } from 'node:path'
@@ -54,6 +54,20 @@ test('checkComponents: flags declared-but-absent and bad-state', () => {
     // 'present' produces no finding
     assert.ok(!f.some(x => x.message.includes("'present'")))
   } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkSandboxContainment: a sandbox-path row with non-sandbox state is ERROR (self-admission guard)', () => {
+  const manifest = {
+    components: [
+      { id: 'ok-sandbox', kind: 'tool', type: 'library', state: 'sandbox', path: 'harness/sandbox/foo/', role: 'r' },
+      { id: 'self-admitted', kind: 'tool', type: 'library', state: 'production', path: 'harness/sandbox/bar/', role: 'r' },
+      { id: 'promoted', kind: 'tool', type: 'library', state: 'production', path: 'harness/lib/baz/', role: 'r' },
+    ],
+  }
+  const f = checkSandboxContainment(manifest)
+  assert.deepEqual(codes(f), ['sandbox-path-non-sandbox-state'])
+  assert.equal(f[0].severity, 'ERROR')
+  assert.ok(f[0].message.includes("'self-admitted'"))
 })
 
 test('checkDependencies: missing dep + production-on-sandbox are ERROR; on-staging is WARN', () => {

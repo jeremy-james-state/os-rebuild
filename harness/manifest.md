@@ -40,7 +40,24 @@ The blueprint — the harness's canonical end-to-end shape: session -> idea -> u
 | harness-doctor | runner | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule  ⚠ new in this pass; not yet wired into pre-push |
 | router | orchestrator | orchestrator | `harness/orchestrators/router.mjs` | Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path)  ⚠ minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step |
 
-### planned (40)
+### sandbox (12)
+
+| Component | Type | Kind | Path | Role |
+| --- | --- | --- | --- | --- |
+| classifier | library | gate | `harness/sandbox/classifier/` | Signal classifier: signal → {type,intent,confidence,target}; rules-based, deterministic, LLM-swappable behind the same contract |
+| confinement | hook | gate | `harness/sandbox/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
+| estimator | library | gate | `harness/sandbox/estimator/` | Scores a work item so the orchestrator can prioritise — consults only, never dispatches |
+| incident | library | governance | `harness/sandbox/incident/` | Deterministic spine of the incident log: STEPS + missingSteps/isComplete + new/check/list |
+| investigator | runner | engine-agent | `harness/sandbox/investigator/` | The first agent: an LLM-driven runner that investigates and fills an incident — evidence-based root cause + the five steps |
+| loop-store | service | store | `harness/sandbox/loop-store/` | The data layer: append-only JSONL truth per stream → readable state/os.db; sole-writer per stream |
+| orchestrator | orchestrator | router | `harness/sandbox/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
+| pipeline | orchestrator | runtime | `harness/sandbox/pipeline/` | Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence |
+| reconciler | service | observability | `harness/sandbox/reconciler/` | Sweeps the data layer for any signal with no terminal run (limbo) → raises an incident; the nothing-fails-silently backstop |
+| session-feedback | hook | hook | `harness/sandbox/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |
+| signal-ledger | library | store | `harness/sandbox/signal-ledger/` | Captures every real input as a four-tuple-stamped signal appended to the gitignored record/signals.jsonl; filters system-injected turns |
+| tracer | library | observability | `harness/sandbox/tracer/` | Cross-cutting trace context: one traceId per signal, one spanId per hop (linked), plus the four-tuple |
+
+### planned (38)
 
 | Component | Type | Kind | Path | Role |
 | --- | --- | --- | --- | --- |
@@ -63,9 +80,7 @@ The blueprint — the harness's canonical end-to-end shape: session -> idea -> u
 | explainer | runner | experiment | `harness/runners/explainer/` | Explains a target file as a Frame; grounded, never invents  ⚠ built but never called by any live flow |
 | local-tracker-server | service | runtime | `harness/services/local-tracker-server/` | Zero-dependency SQLite server on port 4319: event store + reducer + overseer loop; spawns decomposer/judge/learning workers |
 | nightly | runner | experiment | `harness/runners/nightly/` | Retrospective optimizer: combs prior-day agent_runs for inefficiencies; proposes, never auto-applies  ⚠ no scheduled job registered |
-| orchestrator | orchestrator | router | `harness/orchestrators/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
 | overseer | orchestrator | governance | `harness/orchestrators/overseer/` | Management agent: scheduling (DAG/critical path), determinism audit, scope-creep, convergence, snapshot |
-| pipeline | orchestrator | runtime | `harness/orchestrators/pipeline/` | Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence |
 | planner | runner | engine-agent | `harness/runners/planner/` | Scope -> atomic, ordered, rubric-checked build plan |
 | pre-push-hook | hook | hook | `harness/hooks/pre-push-hook/` | Git pre-push entry point that delegates to decision-enforcer  ⚠ core.hooksPath NOT configured by default -> hook may not fire; install-managed-hooks.sh is manual |
 | provisioner | runner | tool | `harness/runners/provisioner/` | Prepares an isolated git worktree as a build target; teardown  ⚠ not yet called by Builder |
