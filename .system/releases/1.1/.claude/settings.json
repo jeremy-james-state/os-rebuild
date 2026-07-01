@@ -1,0 +1,43 @@
+{
+  "$comment": "Tracked Claude Code session config for os-rebuild. The session BOOTS THE SEALED OS: statusLine + UserPromptSubmit run via .system/bin/os-boot.mjs from .system/releases/current (channel file .system/state/channel); SessionStart prints the boot banner (os-publish --boot-check). PreToolUse guards run from the workbench: confinement (LOCKDOWN: sibling blocklist + fail-CLOSED write allowlist) + harness-lock (single-writer per component). Loop hooks stay fail-open for availability; guards fail closed on their verdicts. Wired candidates are still candidates (governance/rules/harness-admission.md). Hooks load at session start - open THIS folder as the project.",
+  "statusLine": {
+    "type": "command",
+    "command": "node \"$CLAUDE_PROJECT_DIR/.system/bin/os-boot.mjs\" statusline"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard/confinement/index.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard/harness-lock/index.mjs\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.system/bin/os-boot.mjs\" session-feedback"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.system/bin/os-publish.mjs\" --boot-check"
+          }
+        ]
+      }
+    ]
+  }
+}
