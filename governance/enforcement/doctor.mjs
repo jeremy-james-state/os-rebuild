@@ -465,7 +465,12 @@ export function checkVersionBumpOnChange(manifest, root) {
     if (!(c.id in pins)) continue // component didn't exist at the release baseline — nothing to compare
     let changed = []
     try {
-      changed = git(['diff', '--name-only', tag, 'HEAD', '--', c.path])
+      // Diff the tag against the WORKING TREE (no 'HEAD'), not tag..HEAD. Branch
+      // verification runs PRE-COMMIT — the edits under review are still uncommitted —
+      // so comparing to HEAD (the last commit) is blind to exactly the change we must
+      // catch, and gave false greens until the change happened to be merged. Diffing
+      // the working tree sees both uncommitted and committed changes since the tag.
+      changed = git(['diff', '--name-only', tag, '--', c.path])
         .split('\n').map(f => f.trim()).filter(Boolean)
     } catch { return [] } // any diff error → fail-open for the whole check
     const p = c.path.replace(/\/+$/, '')
