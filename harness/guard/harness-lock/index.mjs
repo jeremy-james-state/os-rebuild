@@ -53,6 +53,11 @@ export function componentOf(p, { cwd = REPO, root = REPO } = {}) {
   // candidates one level deeper in apps/_drafts/<component>/.
   if (under(abs, join(root, 'harness'))) {
     const rest = abs.slice(join(root, 'harness').length).split(sep).filter(Boolean)
+    // Direct children of harness/ ARE the spine (manifest.json + schema +
+    // generated twins + render.mjs) — the most contended files in the
+    // one-spine design. They lock as one reserved pseudo-component (no
+    // census id collides with it) instead of falling through to null/allow.
+    if (rest.length === 1) return 'harness-spine'
     return rest[1] || null // loop/<component>, guard/<component>, lib/<component>
   }
   if (under(abs, join(root, 'apps'))) {

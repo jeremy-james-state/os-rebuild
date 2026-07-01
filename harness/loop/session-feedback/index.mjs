@@ -24,6 +24,7 @@
  * FAIL-OPEN: any error → exit 0 with no output; the turn proceeds untouched. Never blocks
  * on a failed/timeout check (availability over false authority).
  */
+import { pathToFileURL } from 'node:url'
 import { runLoop } from '../orchestrator/index.mjs'
 import { project } from '../loop-store/index.mjs'
 
@@ -124,4 +125,4 @@ async function main() {
   if (decision.json) process.stdout.write(JSON.stringify(decision.json) + '\n')
   process.exit(0)
 }
-if (import.meta.url === `file://${process.argv[1]}`) main()
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main()

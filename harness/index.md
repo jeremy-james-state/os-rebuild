@@ -9,7 +9,7 @@
 | --- | --- | --- | --- | --- | --- |
 | auto-mode | 0.1.0 | planned | runtime | `harness/loop/auto-mode/` | Away-work runner: select reversible/valuable units -> playback -> runtime select -> fan out thin workers under a concurrency cap |
 | builder | 0.1.0 | planned | engine-agent | `harness/loop/builder/` | Coordinates plan execution: build-gate -> provision -> topo-sort -> per-step execute/verify/retry/reframe/escalate -> acceptance |
-| orchestrator | 0.1.2 | candidate | router | `harness/loop/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
+| orchestrator | 0.1.3 | candidate | router | `harness/loop/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
 | overseer | 0.1.0 | planned | governance | `harness/loop/overseer/` | Management agent: scheduling (DAG/critical path), determinism audit, scope-creep, convergence, snapshot |
 | pipeline | 0.1.1 | candidate | runtime | `apps/_drafts/pipeline/` | Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence |
 | router | 0.1.1 | staging | orchestrator | `harness/loop/router.mjs` | Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path) |
@@ -26,7 +26,7 @@
 | deployer | 0.1.0 | planned | engine-agent | `apps/deployer/` | Deploy gate + sign-off + verify + auto-rollback; auto only for preview/staging/non-client/low-impact |
 | executor | 0.1.0 | planned | engine-agent | `apps/executor/` | Executes one atomic step: mechanical -> template codegen, novel -> model; confines writes to worktree |
 | explainer | 0.1.0 | planned | experiment | `apps/explainer/` | Explains a target file as a Frame; grounded, never invents |
-| harness-doctor | 0.3.1 | staging | governance | `governance/checks/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule |
+| harness-doctor | 0.3.2 | staging | governance | `governance/checks/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule |
 | interface-build | 0.1.0 | retired | experiment | `interface-build/` | Legacy work-tracker UI design-system build |
 | investigator | 0.1.1 | candidate | engine-agent | `apps/_drafts/investigator/` | The first agent: an LLM-driven runner that investigates and fills an incident — evidence-based root cause + the five steps |
 | nightly | 0.1.0 | planned | experiment | `apps/nightly/` | Retrospective optimizer: combs prior-day agent_runs for inefficiencies; proposes, never auto-applies |
@@ -60,9 +60,9 @@
 | away-gate | 0.1.0 | planned | hook | `harness/loop/away-gate/` | PreToolUse safety gate for Auto Mode: allow read/test/git-safe/draft, deny deploy/external-send/money/destructive |
 | capture-hook | 0.1.0 | planned | hook | `harness/loop/capture-hook/` | UserPromptSubmit hook for +task / +list instant capture (no model turn) |
 | confinement | 0.3.1 | candidate | gate | `harness/guard/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
-| harness-lock | 0.2.1 | candidate | gate | `harness/guard/harness-lock/` | PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error. |
+| harness-lock | 0.2.2 | candidate | gate | `harness/guard/harness-lock/` | PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error. |
 | pre-push-hook | 0.1.0 | planned | hook | `harness/loop/pre-push-hook/` | Git pre-push entry point that delegates to decision-enforcer |
-| session-feedback | 0.1.1 | candidate | hook | `harness/loop/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |
+| session-feedback | 0.1.2 | candidate | hook | `harness/loop/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |
 | session-start-hook | 0.1.0 | planned | hook | `harness/loop/session-start-hook/` | SessionStart: validate workspace binding, fail-closed on wrong checkout, inject continuity packet |
 
 ### library (14)

@@ -3,7 +3,7 @@
 > Generated from `harness/manifest.json` by `harness/render.mjs`.
 > Do not edit by hand — edit the JSON and run `node harness/render.mjs --write`.
 
-**Harness version:** 0.16 · **Manifest format:** 2.0 · **Updated:** 2026-06-30
+**Harness version:** 0.17 · **Manifest format:** 2.0 · **Updated:** 2026-06-30
 
 ## Boundary
 

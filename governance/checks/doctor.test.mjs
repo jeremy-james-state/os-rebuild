@@ -376,3 +376,18 @@ test('runDoctor: the real repo manifest has zero ERRORs (boundary holds)', () =>
   const errors = sev(findings, 'ERROR')
   assert.deepEqual(errors, [], `expected no drift, got: ${JSON.stringify(errors, null, 2)}`)
 })
+
+test('checkSchemas: a malformed contract under apps/_drafts is CAUGHT (post-reshape scan covers userland)', () => {
+  const root = mkdtempSync(join(tmpdir(), 'doctor-contracts-'))
+  try {
+    mkdirSync(join(root, 'harness'), { recursive: true })
+    mkdirSync(join(root, 'apps/_drafts/probe'), { recursive: true })
+    writeFileSync(join(root, 'harness/contract.schema.json'), JSON.stringify({ type: 'object', required: ['name'], properties: { name: { type: 'string' } } }))
+    writeFileSync(join(root, 'apps/_drafts/probe/contract.json'), '{ NOT JSON')
+    const f1 = checkSchemas(root)
+    assert.ok(f1.some((x) => x.code === 'contract-unreadable' && x.message.includes('apps/_drafts')), `unparseable _drafts contract not caught: ${JSON.stringify(f1)}`)
+    writeFileSync(join(root, 'apps/_drafts/probe/contract.json'), JSON.stringify({ nope: 1 }))
+    const f2 = checkSchemas(root)
+    assert.ok(f2.some((x) => x.code === 'contract-schema-violation' && x.message.includes('apps/_drafts')), `schema-violating _drafts contract not caught: ${JSON.stringify(f2)}`)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})

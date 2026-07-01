@@ -17,7 +17,7 @@
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, resolve, join, basename } from 'node:path'
 import { render, renderIndex, renderChangelog } from '../../harness/render.mjs'
 import { validate } from './schema-validate.mjs'
@@ -315,7 +315,7 @@ export function checkSchemas(root = DEFAULT_ROOT) {
   if (existsSync(join(root, contractSchemaRel))) {
     let cschema
     try { cschema = readJson(contractSchemaRel) } catch (e) { return [...out, finding('ERROR', 'schema-unreadable', `${contractSchemaRel}: ${e.message}`, 'Fix the schema JSON.')] }
-    for (const cpath of findContracts(join(root, 'harness'))) {
+    for (const cpath of [...findContracts(join(root, 'harness')), ...findContracts(join(root, 'apps'))]) {
       const rel = cpath.slice(root.length + 1)
       let data
       try { data = JSON.parse(readFileSync(cpath, 'utf8')) } catch (e) { out.push(finding('ERROR', 'contract-unreadable', `${rel}: ${e.message}`, 'Fix the contract JSON.')); continue }
@@ -561,4 +561,4 @@ function main() {
   process.exitCode = findings.some(f => f.severity === 'ERROR') ? 1 : 0
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main()
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main()

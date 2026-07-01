@@ -1,6 +1,6 @@
 {
  "manifestVersion": "2.0",
- "harnessVersion": "0.16",
+ "harnessVersion": "0.17",
  "updated": "2026-06-30",
  "description": "Source of truth for the OS harness RAILS: states, kinds, executionContexts, boundary, sequence (the blueprint), chain, environment, governance. Component ROWS live in harness/the manifest census; the doctor (governance/checks/doctor.mjs) merges the two and checks reality against them. harness/manifest.md is the generated human-readable twin (run harness/render.mjs). Components merged in from the manifest census (os-reshape P1): the registry IS the components array.",
  "versioning": {
@@ -705,7 +705,7 @@
     "loop-store"
    ],
    "owner": "harness",
-   "version": "0.1.2",
+   "version": "0.1.3",
    "versions": [
     {
      "version": "0.1.0",
@@ -721,6 +721,11 @@
      "version": "0.1.2",
      "date": "2026-07-01",
      "change": "os-reshape P1: relocated to harness/loop/orchestrator/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.3",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: doctor handler FAIL-LOUD (no fabricated clean bill on crash/empty output \u2014 eval C6) + hardened main-guard (pathToFileURL)."
     }
    ]
   },
@@ -1281,7 +1286,7 @@
    "flags": [
     "new in this pass; not yet wired into pre-push"
    ],
-   "version": "0.3.1",
+   "version": "0.3.2",
    "versions": [
     {
      "version": "0.1.0",
@@ -1302,6 +1307,11 @@
      "version": "0.3.1",
      "date": "2026-07-01",
      "change": "os-reshape P1: relocated to governance/checks/doctor.mjs (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.3.2",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: contract scan widened to apps/ (userland contracts back under schema validation) + hardened main-guard."
     }
    ]
   },
@@ -1644,7 +1654,7 @@
     "loop-store"
    ],
    "owner": "harness",
-   "version": "0.1.1",
+   "version": "0.1.2",
    "versions": [
     {
      "version": "0.1.0",
@@ -1655,6 +1665,11 @@
      "version": "0.1.1",
      "date": "2026-07-01",
      "change": "os-reshape P1: relocated to harness/loop/session-feedback/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: hardened main-guard (pathToFileURL \u2014 no silent no-op under symlinked/space paths)."
     }
    ]
   },
@@ -1804,7 +1819,7 @@
    "tests": "harness/guard/harness-lock/harness-lock.test.mjs",
    "dependsOn": [],
    "owner": "harness",
-   "version": "0.2.1",
+   "version": "0.2.2",
    "versions": [
     {
      "version": "0.1.0",
@@ -1820,6 +1835,11 @@
      "version": "0.2.1",
      "date": "2026-07-01",
      "change": "os-reshape P1: relocated to harness/guard/harness-lock/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.2.2",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: harness-spine pseudo-component \u2014 direct harness/ children (manifest.json, render.mjs, generated twins) now lock as one unit instead of falling through to allow."
     }
    ]
   },

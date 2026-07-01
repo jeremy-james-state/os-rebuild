@@ -10,7 +10,7 @@
 # <repo>/.supabase-key; with no key it skips harmlessly (so it's safe to install before you
 # have a key). Drop the key in .supabase-key and the dashboard starts staying fresh on its own.
 #
-#   Install/refresh:  bash scripts/setup-local-sync.sh
+#   Install/refresh:  bash .system/sync/setup-local-sync.sh
 #   Stop:             launchctl unload ~/Library/LaunchAgents/com.osr.dashboard-sync.plist
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"

@@ -21,6 +21,8 @@ const writeToTarget = (sid) => ({
 })
 
 test('componentOf: resolves _drafts, apps and kernel components; null elsewhere', () => {
+  assert.equal(componentOf('harness/manifest.json', { root: '/r', cwd: '/r' }), 'harness-spine')
+  assert.equal(componentOf('harness/render.mjs', { root: '/r', cwd: '/r' }), 'harness-spine')
   assert.equal(componentOf('apps/_drafts/target/index.mjs', { root: '/r', cwd: '/r' }), 'target')
   assert.equal(componentOf('harness/loop/clarifier/x.mjs', { root: '/r', cwd: '/r' }), 'clarifier')
   assert.equal(componentOf('record/signals.jsonl', { root: '/r', cwd: '/r' }), null)

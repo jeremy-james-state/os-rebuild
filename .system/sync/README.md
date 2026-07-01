@@ -28,3 +28,7 @@ OS_SUPABASE_KEY=… node scripts/sync-supabase.mjs
 ```
 
 `osr_events.schema.sql` is the table DDL (new prefixed table; existing data untouched).
+
+> **After any move of these scripts:** re-run `bash .system/sync/setup-local-sync.sh` — the
+> installed launchd plist bakes in an absolute script path and will crash (MODULE_NOT_FOUND)
+> until reinstalled. (Learned live at the os-reshape P1: both machine jobs died silently.)

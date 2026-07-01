@@ -20,7 +20,7 @@
 import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { newTrace, span, fourTuple, stamp, activeRelease, componentVersion } from '../tracer/index.mjs'
 import { append } from '../loop-store/index.mjs'
 import { classify } from '../classifier/index.mjs'
@@ -40,11 +40,20 @@ export const HANDLERS = {
   // which would flip the outcome to 'failed' and drop the os: block decision. A real hang hits
   // the timeout → r.error → 'failed', never blocking the turn.
   doctor: () => {
-    const r = spawnSync(process.execPath, [join(REPO_ROOT, 'governance/checks/doctor.mjs'), '--json'],
+    const doctorPath = join(REPO_ROOT, 'governance/checks/doctor.mjs')
+    const r = spawnSync(process.execPath, [doctorPath, '--json'],
       { encoding: 'utf8', cwd: REPO_ROOT, timeout: 30000 })
     if (r.error) throw r.error
-    let findings = []
-    try { ({ findings } = JSON.parse(r.stdout || '{"findings":[]}')) } catch { findings = [] }
+    if (r.signal) throw new Error(`doctor killed by ${r.signal} (hang/timeout?)`)
+    // FAIL-LOUD (os-reshape hardening; eval C6): a doctor that produced no
+    // parseable verdict is a CRASH, never a clean bill. Empty stdout (missing
+    // file, symlinked-path no-op) or unparseable JSON used to fabricate
+    // ok:true/0-errors on the ENFORCED os: path. Exit 1 WITH findings is a
+    // legitimate drift verdict — parsed normally below.
+    if (!r.stdout || !r.stdout.trim()) throw new Error(`doctor produced no output (exit ${r.status}) — missing/crashed at ${doctorPath}`)
+    let findings
+    try { ({ findings } = JSON.parse(r.stdout)) } catch (e) { throw new Error(`doctor output unparseable (exit ${r.status}): ${e.message}`) }
+    if (!Array.isArray(findings)) throw new Error(`doctor output has no findings array (exit ${r.status})`)
     const errors = findings.filter((f) => f.severity === 'ERROR').length
     return { ok: errors === 0, errors, warnings: findings.filter((f) => f.severity === 'WARN').length }
   },
@@ -141,4 +150,4 @@ function main() {
   process.stdout.write(r.feedback.map((l, i) => `  ${i + 1}. ${l}`).join('\n') + '\n')
   process.exitCode = r.outcome.status === 'completed' ? 0 : r.outcome.status === 'unknown' ? 3 : 1
 }
-if (import.meta.url === `file://${process.argv[1]}`) main()
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main()
