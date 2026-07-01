@@ -5,21 +5,29 @@ data) and the wired **signal loop**. Orientation: [`README.md`](README.md) ·
 [`harness/sandbox/LOOP.md`](harness/sandbox/LOOP.md) · candidates in
 [`governance/candidates.md`](governance/candidates.md).
 
-## Show the signal-loop trace in every reply
+## The harness governs the turn — your operating protocol
 
-A `UserPromptSubmit` hook — `harness/sandbox/session-feedback/index.mjs`, wired in
-[`.claude/settings.json`](.claude/settings.json) — runs the loop on each prompt and injects a
-single line beginning `🔁 OS loop` into your context for that turn. (Hook stdout is
-context-only by Claude Code design: the user does **not** see it unless you surface it.)
+A `UserPromptSubmit` hook (`harness/sandbox/session-feedback/index.mjs`, wired in
+[`.claude/settings.json`](.claude/settings.json)) runs the **real** signal loop on every prompt
+*before you see it* — classify → estimate → route → execute the routed handler → record — then
+acts in one of two modes:
 
-**Begin every response by printing that `🔁 OS loop …` line verbatim, on its own line,
-followed by a blank line** — then answer normally. This is what lets the user watch a command
-pass through **extract → classify → estimate → route → outcome** in the chat. If no such line
-is present in your context this turn, simply skip it — never fabricate one.
+- **Explicit command (`os: …`)** that completes on a real handler at high confidence → the hook
+  returns `decision:"block"` and the harness's result is shown to the user **without you running
+  at all**. You will simply not see those turns. This path is *enforced*.
+- **Everything else** → the hook injects a `[HARNESS]` block into your context containing the
+  `🔁 OS loop` trace + this operating protocol. **When you see that block, follow it:**
+  1. **Begin your reply with the `🔁 OS loop …` trace line verbatim**, on its own line, then a blank line.
+  2. The loop already classified, routed, and ran any real handler this turn. **Report that
+     outcome faithfully — do not re-run it, do not invent a different result.**
+  3. Address the user's actual request **within the routed intent**; don't free-associate beyond it.
 
-The same trace also renders in the status bar (the `statusLine`,
-`harness/sandbox/session-feedback/statusline.mjs`). Both are observability — neither gates,
-blocks, nor alters your actual work on the user's request.
+  If no `[HARNESS]` block is present, skip the trace line — never fabricate one.
+
+**Honest boundary (do not overstate this):** the `os:`-command path is *enforced* (you are
+bypassed). The natural-language path is *steered* — this protocol is context you should follow,
+not a hard constraint. The `🔁` trace also renders in the status bar (`statusline.mjs`), which is
+always-visible and deterministic.
 
 ## Ground rules for this repo
 

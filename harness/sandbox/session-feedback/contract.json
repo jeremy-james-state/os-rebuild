@@ -5,7 +5,7 @@
   "state": "sandbox",
   "lifecycle": "candidate",
   "role": "command",
-  "summary": "UserPromptSubmit hook that makes the loop visible. Runs the orchestrator loop on the typed prompt and prints the trace back into the session (signal extracted -> classified -> estimated -> routed -> outcome). Sole writer of record/signals.jsonl via the loop. FAIL-OPEN: never blocks a turn.",
+  "summary": "UserPromptSubmit hook that makes the harness GOVERN a turn. Runs the real loop (classify->estimate->route->execute handler->record) before the model sees the prompt. Explicit 'os:' commands that complete at high confidence return decision:block — the model is bypassed and the harness's real result is shown (ENFORCED). Everything else injects the trace + an operating protocol as additionalContext (STEERED). Sole writer of record/signals.jsonl. FAIL-OPEN; never blocks on a failed/timeout check.",
   "admission": {
     "rule": "governance/rules/harness-admission.md",
     "step": "green",
@@ -21,7 +21,9 @@
   "provenance": true,
   "invariants": [
     "Fail-open: any error is swallowed; the turn proceeds untouched.",
-    "The visible trace reproduces for the same input (only the per-stream index #n varies).",
+    "ENFORCED: an explicit 'os:' command that completes at high confidence blocks the model (decision:block) — the real handler ran and the outcome was recorded first.",
+    "Never blocks natural language (would eat a real question) or a failed/timeout check (availability over false authority).",
+    "STEERED, not compelled: the operating-protocol additionalContext is context the model should follow, not a hard constraint.",
     "Sole writer of record/signals.jsonl (signal-ledger is not wired alongside it)."
   ]
 }
