@@ -1,0 +1,64 @@
+{
+  "name": "signal-ledger",
+  "type": "service",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "store",
+  "summary": "Capture every run as a four-tuple-stamped signal. record/signals.jsonl is the append-only truth; state/os.db is the rebuildable projection. First component of the data layer.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": {
+    "description": "A hook payload (stdin JSON) or an explicit signal record.",
+    "schema": {
+      "session": "string | null",
+      "source": "string (hook_event_name or door)",
+      "summary": "string (<=500 chars)"
+    }
+  },
+  "output": {
+    "description": "One appended signal record + the in-memory result.",
+    "schema": {
+      "ok": "boolean",
+      "n": "integer (monotonic per-log index)",
+      "id": "string (signal:<n>)",
+      "dropped": "boolean (on failure)"
+    }
+  },
+  "reads": [
+    "record/signals.jsonl"
+  ],
+  "writes": [
+    "record/signals.jsonl",
+    "state/os.db",
+    "state/signal-drops.jsonl"
+  ],
+  "triggers": "event",
+  "provenance": true,
+  "provenanceMapping": {
+    "session": "Claude session id (payload.session_id || env CLAUDE_CODE_SESSION_ID)",
+    "run": "per-session today; resolves to per-tool-call id when capture goes per-tool",
+    "call": "the monotonic signal index n (global order)",
+    "branch": "git branch of the working tree",
+    "harnessVersion": "harness/manifest.json harnessVersion — which version of the definition was in force",
+    "codeSha": "git rev-parse --short HEAD — the exact code the row was produced under"
+  },
+  "config": [
+    "SIGNAL_RECORD",
+    "SIGNAL_DROPS",
+    "OS_DB",
+    "CLAUDE_CODE_SESSION_ID"
+  ],
+  "invariants": [
+    "record/signals.jsonl is the source of truth (append-only; supersede, never edit).",
+    "state/os.db is rebuildable from record/signals.jsonl and is gitignored.",
+    "Truth-first write ordering: append the durable record before the projection.",
+    "Nothing fails silently: a failed write is recorded to state/signal-drops.jsonl.",
+    "The per-log index n is gapless 1..N — gaps are a detectable completeness failure.",
+    "Every signal carries the four-tuple (session, run, call, branch).",
+    "Every signal records the harnessVersion + codeSha it was captured under (versioning meets traceability)."
+  ]
+}

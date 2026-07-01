@@ -1,0 +1,1973 @@
+{
+ "manifestVersion": "2.0",
+ "harnessVersion": "0.18",
+ "updated": "2026-06-30",
+ "description": "Source of truth for the OS harness RAILS: states, kinds, executionContexts, boundary, sequence (the blueprint), chain, environment, governance. Component ROWS live in harness/the manifest census; the doctor (governance/checks/doctor.mjs) merges the two and checks reality against them. harness/manifest.md is the generated human-readable twin (run harness/render.mjs). Components merged in from the manifest census (os-reshape P1): the registry IS the components array.",
+ "versioning": {
+  "spaces": {
+   "component": {
+    "field": "registry.components[].version",
+    "scheme": "semver",
+    "rule": "Contract-keyed: MAJOR = contract break (input/output/exit); MINOR = contract-compatible behavior added; PATCH = internal fix. Bumped per component; a line is added to the co-located CHANGELOG.md (generated from registry.components[].versions[])."
+   },
+   "harnessRelease": {
+    "field": "harnessVersion",
+    "scheme": "generation.release",
+    "rule": "DELIBERATE \u2014 cut only when the accumulated state is worth naming. generation bumps on a rails/boundary shift; release increments per cut. Pins the component set in .system/releases/<generation.release>.json; the git tag is the capture. NOT a rollup of component bumps.",
+    "log": "harness/CHANGELOG.md",
+    "releases": ".system/releases/"
+   },
+   "osArchitecture": {
+    "field": "governance/architecture.json#architectureVersion",
+    "scheme": "generation.release",
+    "rule": "OUTERMOST + rarest \u2014 bumped only on a tier / boundary (docs/BOUNDARY.md) / data-schema-shape change; recorded via a governance-ledger entry. Governed by governance-check, NEVER by the doctor."
+   }
+  },
+  "migratedFrom": "0.8.0 (single 3-part harnessVersion) \u2014 see harness/CHANGELOG.md."
+ },
+ "states": [
+  "production",
+  "staging",
+  "candidate",
+  "sandbox",
+  "planned",
+  "quarantined",
+  "retired"
+ ],
+ "kinds": [
+  "engine-agent",
+  "router",
+  "gate",
+  "runtime",
+  "store",
+  "governance",
+  "hook",
+  "host-adapter",
+  "config",
+  "environment",
+  "chain-stage",
+  "observability",
+  "tool",
+  "experiment"
+ ],
+ "executionContexts": [
+  {
+   "id": "local",
+   "root": "/Users/jeremyjames/Projects/OS",
+   "canonical": true,
+   "host": "macOS / Claude Code + Codex desktop",
+   "identity": "git-remote:jeremy-james-state/os",
+   "notes": "Original authoritative checkout. Tracker server + Overseer loop + launchd jobs run here."
+  },
+  {
+   "id": "cloud",
+   "root": "/home/user/OS",
+   "canonical": true,
+   "host": "Claude Code on the web (ephemeral container)",
+   "identity": "git-remote:jeremy-james-state/os",
+   "notes": "Co-canonical per decision 2026-06-30. Laws must key off repo identity, not the absolute path. Local-path hooks (Law 5/6) do not currently fire here \u2014 see governance.gaps."
+  }
+ ],
+ "boundary": {
+  "model": "directory+manifest, one branch; lifecycle state DECOUPLED from location",
+  "productionDir": "harness/ (kernel: loop/ + guard/) and apps/ (userland; one folder per app)",
+  "sandboxDir": "apps/_drafts/",
+  "note": "Type is a field, not a folder. Candidates live in apps/_drafts/ (apps) or in harness/loop|guard/ with state=candidate (kernel parts awaiting admission). Admission = a human-reviewed manifest state flip (+ move out of _drafts/ for apps) \u2014 never a self-admitted state edit; CODEOWNERS gates the manifest."
+ },
+ "chain": {
+  "stages": [
+   {
+    "id": "idea",
+    "status": "present",
+    "surface": "tracker capture / +task (capture-hook)",
+    "owner": "tracker",
+    "contract": "captured unit, no filing"
+   },
+   {
+    "id": "pre-frame",
+    "status": "present",
+    "surface": "STATUS pre-frame pipeline",
+    "owner": "ov",
+    "contract": "decisions/decision-preframe-lifecycle-2026-06-22.md"
+   },
+   {
+    "id": "frame",
+    "status": "present",
+    "surface": "specs/frame-*.md",
+    "owner": "framer/ov",
+    "contract": "specs/template-frame-2026-06-22.md"
+   },
+   {
+    "id": "scope",
+    "status": "present",
+    "surface": "specs/scope-*.md",
+    "owner": "scoper/ov",
+    "contract": "specs/template-scope-2026-06-22.md"
+   },
+   {
+    "id": "plan",
+    "status": "present",
+    "surface": "specs/plan-*.md",
+    "owner": "planner/ov",
+    "contract": "specs/template-plan-2026-06-22.md + rubric-plan-quality"
+   },
+   {
+    "id": "build",
+    "status": "present",
+    "surface": "builder",
+    "owner": "builder/orch",
+    "contract": "builder/builder.mjs"
+   },
+   {
+    "id": "test",
+    "status": "present",
+    "surface": "tester",
+    "owner": "tester/ov",
+    "contract": "specs/rubric-testing-gate-2026-06-22.md"
+   },
+   {
+    "id": "deploy",
+    "status": "partial",
+    "surface": "deployer (staging)",
+    "owner": "deployer/ov",
+    "contract": "MISSING formal Deploy stage contract; only checklist-auto-mode-deployment-readiness exists"
+   },
+   {
+    "id": "monitor",
+    "status": "missing",
+    "surface": "none",
+    "owner": "unassigned",
+    "contract": "MISSING \u2014 no Monitor stage, template, or post-Done observation loop"
+   }
+  ]
+ },
+ "sequence": {
+  "description": "The blueprint \u2014 the harness's canonical end-to-end shape: session -> idea -> understand -> shape -> execute -> assure -> ship -> observe. Each step maps to a declared component and/or chain stage. This is the harness's testable shape (the 'blueprint'), distinct from the 'chain' (the build-pipeline stages it wraps); the doctor checks that every step resolves and that no production step depends on a sandbox component.",
+  "steps": [
+   {
+    "order": 1,
+    "id": "session-start",
+    "phase": "intake",
+    "component": "session-start-hook",
+    "produces": "bound session + injected continuity",
+    "note": "Must key off repo-identity so it binds in both local and cloud."
+   },
+   {
+    "order": 2,
+    "id": "capture",
+    "phase": "intake",
+    "stage": "idea",
+    "component": "capture-hook",
+    "produces": "captured unit in the tracker"
+   },
+   {
+    "order": 3,
+    "id": "signal-extract",
+    "phase": "understand",
+    "component": "tagger",
+    "produces": "routing signal / tags",
+    "note": "Today the tagger runs per-step feeding the Orchestrator (step 8); declared here as the intended upstream signal step."
+   },
+   {
+    "order": 4,
+    "id": "classify",
+    "phase": "understand",
+    "component": "clarify-gate",
+    "produces": "clarifier-worthwhile decision"
+   },
+   {
+    "order": 5,
+    "id": "frame",
+    "phase": "understand",
+    "component": "clarifier",
+    "stage": "frame",
+    "produces": "grounded End State"
+   },
+   {
+    "order": 6,
+    "id": "scope",
+    "phase": "shape",
+    "component": "scoper",
+    "stage": "scope",
+    "produces": "bounded, viable scope"
+   },
+   {
+    "order": 7,
+    "id": "plan",
+    "phase": "shape",
+    "component": "planner",
+    "stage": "plan",
+    "produces": "atomic, ordered plan"
+   },
+   {
+    "order": 8,
+    "id": "route",
+    "phase": "execute",
+    "component": "orchestrator",
+    "produces": "per-step tier routing",
+    "note": "Consumes the signal from step 3."
+   },
+   {
+    "order": 9,
+    "id": "build",
+    "phase": "execute",
+    "component": "builder",
+    "stage": "build",
+    "produces": "built artifacts in an isolated target"
+   },
+   {
+    "order": 10,
+    "id": "assure",
+    "phase": "assure",
+    "component": "tester",
+    "stage": "test",
+    "produces": "testing-gate verdict (>=8/10)"
+   },
+   {
+    "order": 11,
+    "id": "ship",
+    "phase": "ship",
+    "component": "deployer",
+    "stage": "deploy",
+    "produces": "deployment + verify + rollback",
+    "note": "deployer is state=staging; ship step is not yet production-ready."
+   },
+   {
+    "order": 12,
+    "id": "observe",
+    "phase": "observe",
+    "stage": "monitor",
+    "produces": "(MISSING) post-deploy monitoring + feedback into new units"
+   }
+  ]
+ },
+ "environment": {
+  "claudeCode": {
+   "settingsTracked": false,
+   "note": ".claude/settings.local.json (the file wiring SessionStart + PreToolUse hooks) is NOT in the repo. Only away-gate-settings.snippet.json is tracked. claude-global-settings.json is a sample, not active config.",
+   "hooks": [
+    {
+     "type": "SessionStart",
+     "wires": "session-start-hook",
+     "tracked": false
+    },
+    {
+     "type": "PreToolUse",
+     "wires": "away-gate",
+     "tracked": false
+    },
+    {
+     "type": "UserPromptSubmit",
+     "wires": "capture-hook",
+     "tracked": "local-tracker/.claude/settings.json only"
+    }
+   ]
+  },
+  "mcpServers": [
+   {
+    "id": "github",
+    "declaredInRepo": false
+   },
+   {
+    "id": "supabase",
+    "declaredInRepo": false
+   },
+   {
+    "id": "google-drive",
+    "declaredInRepo": false
+   },
+   {
+    "id": "granola",
+    "declaredInRepo": false
+   }
+  ],
+  "skills": {
+   "declaredInRepo": false,
+   "note": "Skills active in a session (deep-research, code-review, etc.) are host/account-level and undeclared."
+  },
+  "plugins": {
+   "declaredInRepo": false,
+   "note": "No plugins dir or manifest in repo."
+  },
+  "gaps": [
+   "No .mcp.json -> MCP servers ungoverned",
+   "No tracked settings.json -> hook wiring (the laws' backbone) lives outside the repo",
+   "No skills/plugins manifest -> session capability set is invisible and non-reproducible"
+  ]
+ },
+ "governance": {
+  "model": "Three layers: Principles (advisory) -> Laws (programmatic, fail-closed) -> GitHub (platform).",
+  "laws": [
+   {
+    "id": 1,
+    "name": "Session Registry",
+    "enforced": true
+   },
+   {
+    "id": 2,
+    "name": "Auto Mode Escape",
+    "enforced": "staging \u2014 away-gate not wired by default"
+   },
+   {
+    "id": 3,
+    "name": "Template Conformance",
+    "enforced": true
+   },
+   {
+    "id": 4,
+    "name": "Status Truth",
+    "enforced": true
+   },
+   {
+    "id": 5,
+    "name": "Session Start Live-Path",
+    "enforced": "needs repo-identity generalization (both-first-class)"
+   },
+   {
+    "id": 6,
+    "name": "Chain State Attestation",
+    "enforced": true
+   },
+   {
+    "id": 7,
+    "name": "Post-Handoff Caution",
+    "enforced": true
+   },
+   {
+    "id": 8,
+    "name": "Write Branch Audit",
+    "enforced": true
+   },
+   {
+    "id": 9,
+    "name": "Duplicate Session Claim",
+    "enforced": true
+   },
+   {
+    "id": 10,
+    "name": "GitHub Branch Protection",
+    "enforced": false
+   },
+   {
+    "id": 11,
+    "name": "Unified Violation Audit",
+    "enforced": "partial"
+   }
+  ],
+  "github": {
+   "codeowners": ".github/CODEOWNERS (exists)",
+   "branchProtection": "NOT configured \u2014 drafted in specs/config-github-branch-protection-2026-06-23.md",
+   "statusChecks": "none (.github/workflows/ empty)",
+   "note": "CODEOWNERS is inert until branch protection is configured on GitHub."
+  },
+  "buildRules": [
+   "A component enters the production harness only via the promotion contract (frame->...->test + human approval).",
+   "Production never depends on sandbox or quarantined components.",
+   "Every harness change is a manifest change; an undeclared wired surface is a drift error.",
+   "The environment (settings/hooks/plugins/skills/MCP/contexts) is pinned in-repo and checked.",
+   "Master is the single source of truth; branches are transient change vehicles merged via PR + protection."
+  ],
+  "gaps": [
+   "core.hooksPath not configured -> local laws may not fire on fresh clone / cloud",
+   "GitHub branch protection not configured -> no platform-level stop ('lost control' risk remains)",
+   "No promote/quarantine CLI -> promotion is manual STATUS editing",
+   "No unified violation audit (Law 11)"
+  ]
+ },
+ "components": [
+  {
+   "id": "tagger",
+   "kind": "gate",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/tagger/",
+   "role": "Signal extractor: derives routing tags from a step (purpose, deterministic, needsIndependence, breadth, heavyOffThread, producesReasoning)",
+   "trigger": "Before the Orchestrator routes each step",
+   "wiredBy": [
+    "local-tracker/orchestrator.mjs"
+   ],
+   "tests": "local-tracker/tagger.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "evidence": "Deterministic heuristic; the 'signal extractor' the chain begins with",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "clarify-gate",
+   "kind": "gate",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/clarify-gate/",
+   "role": "Pre-Orchestrator classifier: is the Clarifier worthwhile (fuzzy + grounded)? Routes run-clarifier / gather-info / self-state / ground-first",
+   "trigger": "Before clarifier / decomposition",
+   "wiredBy": [
+    "local-tracker/decomposer.mjs"
+   ],
+   "tests": "local-tracker/clarify-gate.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "clarifier",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/clarifier/",
+   "entry": "clarifier/index.mjs",
+   "role": "Transcript/request -> grounded End State (goal, conditions, assumptions, definition of done)",
+   "trigger": "Chain stage 1",
+   "wiredBy": [
+    "local-tracker/decomposer.mjs",
+    "local-tracker/pipeline.mjs"
+   ],
+   "tests": "clarifier/*.test.mjs (14 files)",
+   "dependsOn": [
+    "clarify-gate"
+   ],
+   "owner": "harness",
+   "flags": [
+    "two meanings stores (clarifier.db vs confirmed-meanings.db) pending unification"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "scoper",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/scoper/",
+   "entry": "scoper/index.mjs",
+   "role": "End State -> bounded, viable Scope (in/out items with traceability)",
+   "trigger": "Chain stage 2",
+   "wiredBy": [
+    "local-tracker/pipeline.mjs"
+   ],
+   "tests": "scoper/*.test.mjs (5 files)",
+   "dependsOn": [
+    "clarifier"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "planner",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/planner/",
+   "entry": "planner/index.mjs",
+   "role": "Scope -> atomic, ordered, rubric-checked build plan",
+   "trigger": "Chain stage 3",
+   "wiredBy": [
+    "local-tracker/pipeline.mjs"
+   ],
+   "tests": "planner/*.test.mjs (5 files)",
+   "dependsOn": [
+    "scoper"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "builder",
+   "kind": "engine-agent",
+   "type": "orchestrator",
+   "state": "planned",
+   "path": "harness/loop/builder/",
+   "entry": "builder/index.mjs",
+   "role": "Coordinates plan execution: build-gate -> provision -> topo-sort -> per-step execute/verify/retry/reframe/escalate -> acceptance",
+   "trigger": "Chain stage 4 (Build)",
+   "wiredBy": [
+    "local-tracker/pipeline.mjs"
+   ],
+   "tests": "builder/full-stack.integration.test.mjs",
+   "dependsOn": [
+    "planner",
+    "executor",
+    "verifier",
+    "provisioner"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "executor",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/executor/",
+   "entry": "executor/index.mjs",
+   "role": "Executes one atomic step: mechanical -> template codegen, novel -> model; confines writes to worktree",
+   "trigger": "Per build step",
+   "wiredBy": [
+    "builder/builder.mjs"
+   ],
+   "tests": "executor/executor.test.mjs",
+   "dependsOn": [
+    "build-templates"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "build-templates",
+   "kind": "tool",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/build-templates/",
+   "entry": "build-templates/index.mjs",
+   "role": "Bounded catalog of deterministic codegen templates",
+   "trigger": "Mechanical build steps",
+   "wiredBy": [
+    "executor/executor.mjs"
+   ],
+   "tests": "build-templates/build-templates.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "verifier",
+   "kind": "tool",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/verifier/",
+   "entry": "verifier/index.mjs",
+   "role": "Runs shell/predicate checks on produced artifacts; honest about unrunnable checks",
+   "trigger": "After each build step and in Tester",
+   "wiredBy": [
+    "builder/builder.mjs",
+    "tester/tester.mjs"
+   ],
+   "tests": "verifier/verifier.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "tester",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/tester/",
+   "entry": "tester/index.mjs",
+   "role": "Whole-build acceptance: rules + deterministic check-generation + adversarial subagent review; never model-verifies",
+   "trigger": "Chain stage 5 (Testing gate)",
+   "wiredBy": [
+    "local-tracker/pipeline.mjs"
+   ],
+   "tests": "tester/tester.test.mjs",
+   "dependsOn": [
+    "verifier"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "deployer",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/deployer/",
+   "entry": "deployer/index.mjs",
+   "role": "Deploy gate + sign-off + verify + auto-rollback; auto only for preview/staging/non-client/low-impact",
+   "trigger": "Chain stage 6 (Deploy)",
+   "wiredBy": [],
+   "tests": "deployer/full-chain.integration.test.mjs",
+   "dependsOn": [
+    "tester"
+   ],
+   "owner": "harness",
+   "flags": [
+    "built but not wired into a live flow; no formal Deploy stage contract yet"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "provisioner",
+   "kind": "tool",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/provisioner/",
+   "entry": "provisioner/index.mjs",
+   "role": "Prepares an isolated git worktree as a build target; teardown",
+   "trigger": "Builder build-gate",
+   "wiredBy": [],
+   "tests": "provisioner/provisioner.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "flags": [
+    "not yet called by Builder"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "orchestrator",
+   "kind": "router",
+   "type": "orchestrator",
+   "state": "candidate",
+   "path": "harness/loop/orchestrator/",
+   "role": "Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control",
+   "trigger": "Every routed step",
+   "wiredBy": [
+    "session-feedback"
+   ],
+   "tests": "harness/loop/orchestrator/orchestrator.test.mjs",
+   "dependsOn": [
+    "classifier",
+    "estimator",
+    "tracer",
+    "loop-store"
+   ],
+   "owner": "harness",
+   "version": "0.1.4",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "Raise doctor-dispatch spawnSync timeout 5s\u219230s \u2014 the 5s fail-open guard cut off a legitimate 1\u20137s doctor under load (flaky os: block decision)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/orchestrator/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.3",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: doctor handler FAIL-LOUD (no fabricated clean bill on crash/empty output \u2014 eval C6) + hardened main-guard (pathToFileURL)."
+    },
+    {
+     "version": "0.1.4",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: OS_ROOT boot-root indirection (explicit runtime root for sealed/launcher boots; default file-relative derivation unchanged)."
+    }
+   ]
+  },
+  {
+   "id": "route",
+   "kind": "router",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/route/",
+   "role": "Pure routing policy: tags -> tier ladder; verification never uses model; fail-safe defaults to script",
+   "trigger": "Called by Orchestrator",
+   "wiredBy": [
+    "local-tracker/orchestrator.mjs"
+   ],
+   "tests": "local-tracker/route.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "decomposer",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/decomposer/",
+   "role": "Top-down task-tree builder: confidence gate -> cut -> atomicity -> depth budget -> store -> dependencies",
+   "trigger": "On unit activation",
+   "wiredBy": [
+    "local-tracker/server.mjs"
+   ],
+   "tests": "local-tracker/decomposer.test.mjs",
+   "dependsOn": [
+    "clarify-gate"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "overseer",
+   "kind": "governance",
+   "type": "orchestrator",
+   "state": "planned",
+   "path": "harness/loop/overseer/",
+   "role": "Management agent: scheduling (DAG/critical path), determinism audit, scope-creep, convergence, snapshot",
+   "trigger": "Overseer pass after every write",
+   "wiredBy": [
+    "local-tracker/server.mjs"
+   ],
+   "tests": "overseer/overseer.test.mjs (2032 lines)",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "local-tracker-server",
+   "kind": "runtime",
+   "type": "service",
+   "state": "planned",
+   "path": "apps/local-tracker-server/",
+   "role": "Zero-dependency SQLite server on port 4319: event store + reducer + overseer loop; spawns decomposer/judge/learning workers",
+   "trigger": "Always running (launchd service on local)",
+   "wiredBy": [],
+   "tests": "local-tracker/server.test.mjs",
+   "dependsOn": [
+    "store",
+    "reducer",
+    "overseer"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "store",
+   "kind": "store",
+   "type": "service",
+   "state": "planned",
+   "path": "apps/store/",
+   "role": "Append-only event store (work.db) + observation store (obs.db: flags, agent_runs, chain_runs)",
+   "trigger": "Every state change",
+   "wiredBy": [
+    "local-tracker/server.mjs"
+   ],
+   "tests": "local-tracker/store.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "reducer",
+   "kind": "store",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/reducer/",
+   "role": "Stateless read model: derives current unit state and parent/child tree from the event log",
+   "trigger": "On /api reads",
+   "wiredBy": [
+    "local-tracker/server.mjs"
+   ],
+   "tests": "local-tracker/reducer.test.mjs",
+   "dependsOn": [
+    "store"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "pipeline",
+   "kind": "runtime",
+   "type": "orchestrator",
+   "state": "candidate",
+   "path": "apps/_drafts/pipeline/",
+   "role": "Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence",
+   "trigger": "POST /api/build",
+   "wiredBy": [
+    "local-tracker/server.mjs"
+   ],
+   "tests": "apps/_drafts/pipeline/pipeline.test.mjs",
+   "dependsOn": [
+    "clarifier",
+    "scoper",
+    "planner",
+    "builder",
+    "tester"
+   ],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to apps/_drafts/pipeline/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "auto-mode",
+   "kind": "runtime",
+   "type": "orchestrator",
+   "state": "planned",
+   "path": "harness/loop/auto-mode/",
+   "entry": "auto-mode/index.mjs",
+   "role": "Away-work runner: select reversible/valuable units -> playback -> runtime select -> fan out thin workers under a concurrency cap",
+   "trigger": "./auto / ./fast",
+   "wiredBy": [
+    "auto-mode/run.mjs"
+   ],
+   "tests": "auto-mode/*.test.mjs (7 files)",
+   "dependsOn": [
+    "orchestrator",
+    "away-gate"
+   ],
+   "owner": "harness",
+   "flags": [
+    "approve-mode trusted; tool-use execution trust still pending (Gate B)"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "context-window-monitor",
+   "kind": "observability",
+   "type": "service",
+   "state": "planned",
+   "path": "apps/context-window-monitor/",
+   "entry": "context-window-monitor/index.mjs",
+   "role": "Polls Claude/Codex transcript telemetry; adaptive rotation thresholds; writes trigger events; can auto-prepare handoff",
+   "trigger": "Continuous watch / threshold crossing",
+   "wiredBy": [
+    "context-window/session-start-hook.mjs"
+   ],
+   "tests": "context-window/*.test.mjs (4 files)",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "decision-enforcer",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/decision-enforcer/",
+   "role": "Pre-push gate: status truth, session registry, live-path, branch ownership, post-handoff, write-branch, template conformance, chain-state attestation",
+   "trigger": "git push (via .githooks/pre-push)",
+   "wiredBy": [
+    ".githooks/pre-push"
+   ],
+   "tests": "overseer/decision-enforcer.test.mjs (15 tests)",
+   "dependsOn": [
+    "session-governor",
+    "template-conformance",
+    "chain-state-attest",
+    "write-branch-audit"
+   ],
+   "owner": "harness",
+   "flags": [
+    "only fires if core.hooksPath is configured; not configured in fresh clones / cloud"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "session-governor",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/session-governor/",
+   "role": "Active-session registry, duplicate-topic collision guard, push visibility, post-handoff write caution",
+   "trigger": "startup + pre-push",
+   "wiredBy": [
+    "startup",
+    ".githooks/pre-push"
+   ],
+   "tests": "overseer/session-governor.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "template-conformance",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/template-conformance/",
+   "role": "Frame/Scope/Plan must conform to templates; 4 visibility states (hidden-structural, hidden-needs-agent-review, ready-for-human-review, approved); spillover routing",
+   "trigger": "Frame/Scope/Plan create/review + pre-push",
+   "wiredBy": [
+    "overseer/decision-enforcer.mjs"
+   ],
+   "tests": "overseer/template-conformance.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "chain-state-attest",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/chain-state-attest/",
+   "role": "Deterministic digest over STATUS chain/pre-frame/queue; blocks chain edits unless attestation matches HEAD",
+   "trigger": "pre-push on chain artifacts",
+   "wiredBy": [
+    "overseer/decision-enforcer.mjs"
+   ],
+   "tests": "overseer/chain-state-attest.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "write-branch-audit",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/write-branch-audit/",
+   "role": "Asserts the active session branch matches the git write branch",
+   "trigger": "pre-push",
+   "wiredBy": [
+    "overseer/decision-enforcer.mjs"
+   ],
+   "tests": "overseer/write-branch-audit.test.mjs",
+   "dependsOn": [
+    "session-governor"
+   ],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "repo-hygiene",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/repo-hygiene/",
+   "role": "Audits and prunes merged session branches/worktrees",
+   "trigger": "Overseer hygiene pass / manual",
+   "wiredBy": [],
+   "tests": "overseer/repo-hygiene.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "approval-runner",
+   "kind": "governance",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/approval-runner/",
+   "role": "Turns template/git/host-capability signals into durable approval records (SQLite + JSONL); exact-file commits on session branches only",
+   "trigger": "Approval frontier scan",
+   "wiredBy": [
+    "approvals"
+   ],
+   "tests": "overseer/approvals/approvals.test.mjs",
+   "dependsOn": [
+    "template-conformance",
+    "session-governor"
+   ],
+   "owner": "harness",
+   "flags": [
+    "no read API / unified violation dashboard yet (Law 11 partial)"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "pre-push-hook",
+   "kind": "hook",
+   "type": "hook",
+   "state": "planned",
+   "path": "harness/loop/pre-push-hook/",
+   "role": "Git pre-push entry point that delegates to decision-enforcer",
+   "trigger": "git push",
+   "wiredBy": [
+    ".system/sync/install-managed-hooks.sh"
+   ],
+   "tests": "",
+   "dependsOn": [
+    "decision-enforcer"
+   ],
+   "owner": "harness",
+   "flags": [
+    "core.hooksPath NOT configured by default -> hook may not fire; install-managed-hooks.sh is manual"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "away-gate",
+   "kind": "hook",
+   "type": "hook",
+   "state": "planned",
+   "path": "harness/loop/away-gate/",
+   "role": "PreToolUse safety gate for Auto Mode: allow read/test/git-safe/draft, deny deploy/external-send/money/destructive",
+   "trigger": "Every tool call while Auto Mode active",
+   "wiredBy": [
+    ".claude/away-gate-settings.snippet.json"
+   ],
+   "tests": "hooks/away-gate.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "flags": [
+    "snippet exists but not merged into an active settings.json -> not wired by default"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "approve-hook",
+   "kind": "hook",
+   "type": "hook",
+   "state": "planned",
+   "path": "harness/loop/approve-hook/",
+   "role": "UserPromptSubmit hook intercepting 'approve <item> <stage>' prompts",
+   "trigger": "Prompt submit",
+   "wiredBy": [],
+   "tests": "",
+   "dependsOn": [],
+   "owner": "harness",
+   "flags": [
+    "built but never wired; untested"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "capture-hook",
+   "kind": "hook",
+   "type": "hook",
+   "state": "planned",
+   "path": "harness/loop/capture-hook/",
+   "role": "UserPromptSubmit hook for +task / +list instant capture (no model turn)",
+   "trigger": "Prompt submit",
+   "wiredBy": [
+    "local-tracker/.claude/settings.json"
+   ],
+   "tests": "",
+   "dependsOn": [
+    "local-tracker-server"
+   ],
+   "owner": "harness",
+   "flags": [
+    "untested"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "session-start-hook",
+   "kind": "hook",
+   "type": "hook",
+   "state": "planned",
+   "path": "harness/loop/session-start-hook/",
+   "role": "SessionStart: validate workspace binding, fail-closed on wrong checkout, inject continuity packet",
+   "trigger": "Session start",
+   "wiredBy": [
+    ".claude/settings.local.json (untracked)"
+   ],
+   "tests": "context-window/session-start-hook.test.mjs",
+   "dependsOn": [
+    "context-window-monitor"
+   ],
+   "owner": "harness",
+   "flags": [
+    "hardcodes local path -> fails closed in cloud context; must move to repo-identity (both-first-class decision)"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "harness-doctor",
+   "kind": "governance",
+   "type": "runner",
+   "state": "staging",
+   "path": "governance/checks/doctor.mjs",
+   "role": "Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule",
+   "trigger": "harness doctor / pre-push (to be wired in Phase 1)",
+   "wiredBy": [],
+   "tests": "governance/checks/doctor.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "flags": [
+    "new in this pass; not yet wired into pre-push"
+   ],
+   "version": "0.3.3",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.2.0",
+     "date": "2026-07-01",
+     "change": "checkVersionBumpOnChange now diffs the working tree (not HEAD) so it fires at pre-commit verification; also reflects the sandbox\u2192candidate guard change."
+    },
+    {
+     "version": "0.3.0",
+     "date": "2026-07-01",
+     "change": "checkVersionBumpOnChange now also excludes *.test.mjs from the substantive-change filter \u2014 a test-only change no longer forces a component version bump (version is contract-keyed to shipped behavior, not test coverage)."
+    },
+    {
+     "version": "0.3.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to governance/checks/doctor.mjs (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.3.2",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: contract scan widened to apps/ (userland contracts back under schema validation) + hardened main-guard."
+    },
+    {
+     "version": "0.3.3",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "researcher",
+   "kind": "experiment",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/researcher/",
+   "role": "Discovery/research lane: grounded knowledge with cited sources",
+   "trigger": "n/a",
+   "wiredBy": [],
+   "tests": "researcher/research-schema.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "flags": [
+    "schema only; no agent entry point; unwired"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "explainer",
+   "kind": "experiment",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/explainer/",
+   "role": "Explains a target file as a Frame; grounded, never invents",
+   "trigger": "n/a",
+   "wiredBy": [],
+   "tests": "explainer/explainer.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "flags": [
+    "built but never called by any live flow"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "nightly",
+   "kind": "experiment",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/nightly/",
+   "role": "Retrospective optimizer: combs prior-day agent_runs for inefficiencies; proposes, never auto-applies",
+   "trigger": "Overseer nightly pass",
+   "wiredBy": [
+    "local-tracker/server.mjs"
+   ],
+   "tests": "nightly/nightly.test.mjs",
+   "dependsOn": [
+    "store"
+   ],
+   "owner": "harness",
+   "flags": [
+    "no scheduled job registered"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "refinement",
+   "kind": "experiment",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/refinement/",
+   "role": "Overnight prototype/eval corpus (rubric v2, decomposer prototypes)",
+   "trigger": "n/a",
+   "wiredBy": [],
+   "tests": "",
+   "dependsOn": [],
+   "owner": "experiments",
+   "flags": [
+    "~26M generated artifacts; candidate for sandbox/ relocation"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "clarifier-eval",
+   "kind": "experiment",
+   "type": "library",
+   "state": "planned",
+   "path": "harness/lib/clarifier-eval/",
+   "role": "Clarifier gate bake-off corpus and calibration",
+   "trigger": "n/a",
+   "wiredBy": [],
+   "tests": "",
+   "dependsOn": [],
+   "owner": "experiments",
+   "flags": [
+    "~15M; candidate for sandbox/ relocation"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "interface-build",
+   "kind": "experiment",
+   "type": "runner",
+   "state": "retired",
+   "path": "interface-build/",
+   "role": "Legacy work-tracker UI design-system build",
+   "trigger": "n/a",
+   "wiredBy": [],
+   "tests": "interface-build/test.mjs",
+   "dependsOn": [],
+   "owner": "experiments",
+   "flags": [
+    "superseded by Dashboard/Command Center direction"
+   ],
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "spike",
+   "kind": "experiment",
+   "type": "runner",
+   "state": "planned",
+   "path": "apps/spike/",
+   "role": "Ad-hoc worker stub",
+   "trigger": "n/a",
+   "wiredBy": [],
+   "tests": "",
+   "dependsOn": [],
+   "owner": "experiments",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    }
+   ]
+  },
+  {
+   "id": "router",
+   "kind": "orchestrator",
+   "type": "orchestrator",
+   "state": "staging",
+   "path": "harness/loop/router.mjs",
+   "role": "Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path)",
+   "trigger": "a signal arrives at a door",
+   "wiredBy": [],
+   "tests": "harness/loop/router.test.mjs",
+   "dependsOn": [
+    "harness-doctor"
+   ],
+   "owner": "harness",
+   "flags": [
+    "minimal first wiring; dispatch table still hard-coded \u2014 deriving it from the manifest census is a later wiring step"
+   ],
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/router.mjs (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "classifier",
+   "kind": "gate",
+   "type": "library",
+   "state": "candidate",
+   "path": "harness/loop/classifier/",
+   "role": "Signal classifier: signal \u2192 {type,intent,confidence,target}; rules-based, deterministic, LLM-swappable behind the same contract",
+   "tests": "harness/loop/classifier/classifier.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.1",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/classifier/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    }
+   ]
+  },
+  {
+   "id": "estimator",
+   "kind": "gate",
+   "type": "library",
+   "state": "candidate",
+   "path": "harness/loop/estimator/",
+   "role": "Scores a work item so the orchestrator can prioritise \u2014 consults only, never dispatches",
+   "tests": "harness/loop/estimator/estimator.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.1",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/estimator/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    }
+   ]
+  },
+  {
+   "id": "reconciler",
+   "kind": "observability",
+   "type": "service",
+   "state": "candidate",
+   "path": "harness/loop/reconciler/",
+   "role": "Sweeps the data layer for any signal with no terminal run (limbo) \u2192 raises an incident; the nothing-fails-silently backstop",
+   "tests": "harness/loop/reconciler/reconciler.test.mjs",
+   "dependsOn": [
+    "loop-store"
+   ],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/reconciler/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: OS_ROOT boot-root indirection (explicit runtime root for sealed/launcher boots; default file-relative derivation unchanged)."
+    }
+   ]
+  },
+  {
+   "id": "tracer",
+   "kind": "observability",
+   "type": "library",
+   "state": "candidate",
+   "path": "harness/loop/tracer/",
+   "role": "Cross-cutting trace context: one traceId per signal, one spanId per hop (linked), plus the four-tuple",
+   "tests": "harness/loop/tracer/tracer.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/tracer/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: OS_ROOT boot-root indirection (explicit runtime root for sealed/launcher boots; default file-relative derivation unchanged)."
+    }
+   ]
+  },
+  {
+   "id": "loop-store",
+   "kind": "store",
+   "type": "service",
+   "state": "candidate",
+   "path": "harness/loop/loop-store/",
+   "role": "The data layer: append-only JSONL truth per stream \u2192 readable state/os.db; sole-writer per stream",
+   "tests": "harness/loop/loop-store/loop-store.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/loop-store/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: OS_ROOT boot-root indirection (explicit runtime root for sealed/launcher boots; default file-relative derivation unchanged)."
+    }
+   ]
+  },
+  {
+   "id": "session-feedback",
+   "kind": "hook",
+   "type": "hook",
+   "state": "candidate",
+   "path": "harness/loop/session-feedback/",
+   "role": "UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open",
+   "trigger": "UserPromptSubmit",
+   "wiredBy": [
+    ".claude/settings.json"
+   ],
+   "tests": "harness/loop/session-feedback/session-feedback.test.mjs",
+   "dependsOn": [
+    "orchestrator",
+    "loop-store"
+   ],
+   "owner": "harness",
+   "version": "0.1.3",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/session-feedback/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: hardened main-guard (pathToFileURL \u2014 no silent no-op under symlinked/space paths)."
+    },
+    {
+     "version": "0.1.3",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "confinement",
+   "kind": "gate",
+   "type": "hook",
+   "state": "candidate",
+   "path": "harness/guard/confinement/",
+   "role": "PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec)",
+   "trigger": "PreToolUse",
+   "wiredBy": [
+    ".claude/settings.json"
+   ],
+   "tests": "harness/guard/confinement/confinement.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.3.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.2.0",
+     "date": "2026-07-01",
+     "change": "Add dormant fail-closed decideStrict allowlist + Tier-1 harness.sb (live decide() unchanged)."
+    },
+    {
+     "version": "0.3.0",
+     "date": "2026-07-01",
+     "change": "Make forbidden/targets/decide injectable via optional {root,home} so tests are hermetic (no dependency on ambient HOME / checkout location); live main() + decideStrict unchanged, defaults preserve behavior."
+    },
+    {
+     "version": "0.3.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/guard/confinement/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.3.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "incident",
+   "kind": "governance",
+   "type": "library",
+   "state": "candidate",
+   "path": "apps/_drafts/incident/",
+   "role": "Deterministic spine of the incident log: STEPS + missingSteps/isComplete + new/check/list",
+   "tests": "apps/_drafts/incident/incident.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to apps/_drafts/incident/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "handoff",
+   "kind": "governance",
+   "type": "library",
+   "state": "candidate",
+   "path": "apps/_drafts/handoff/",
+   "role": "Deterministic handoff spine: guarantees session handoffs are saved to record/handoffs/ (+ renders docs/RESUME-HERE.md); new/check/list.",
+   "tests": "apps/_drafts/handoff/handoff.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Bring handoff into the harness \u2014 deterministic save to record/handoffs/ + contract + test."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to apps/_drafts/handoff/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "investigator",
+   "kind": "engine-agent",
+   "type": "runner",
+   "state": "candidate",
+   "path": "apps/_drafts/investigator/",
+   "role": "The first agent: an LLM-driven runner that investigates and fills an incident \u2014 evidence-based root cause + the five steps",
+   "dependsOn": [
+    "incident"
+   ],
+   "owner": "harness",
+   "version": "0.1.1",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to apps/_drafts/investigator/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    }
+   ]
+  },
+  {
+   "id": "signal-ledger",
+   "kind": "store",
+   "type": "library",
+   "state": "candidate",
+   "path": "harness/loop/signal-ledger/",
+   "role": "Captures every real input as a four-tuple-stamped signal appended to the gitignored record/signals.jsonl; filters system-injected turns",
+   "tests": "harness/loop/signal-ledger/filter.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.2",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (seeded at P1-a)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/loop/signal-ledger/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "harness-lock",
+   "kind": "gate",
+   "type": "hook",
+   "state": "candidate",
+   "path": "harness/guard/harness-lock/",
+   "role": "PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error.",
+   "trigger": "PreToolUse",
+   "tests": "harness/guard/harness-lock/harness-lock.test.mjs",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.2.3",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version."
+    },
+    {
+     "version": "0.2.0",
+     "date": "2026-07-01",
+     "change": "Add dormant decideBranchDiscipline + reconciler orphan-clear (not wired)."
+    },
+    {
+     "version": "0.2.1",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to harness/guard/harness-lock/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.2.2",
+     "date": "2026-07-01",
+     "change": "P1 peer-review fix: harness-spine pseudo-component \u2014 direct harness/ children (manifest.json, render.mjs, generated twins) now lock as one unit instead of falling through to allow."
+    },
+    {
+     "version": "0.2.3",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "reshape-rig",
+   "kind": "gate",
+   "type": "library",
+   "state": "candidate",
+   "path": "apps/_drafts/reshape-rig/",
+   "role": "Migration test rig for the os-reshape plan: golden-master capture/compare (F5), the \u00a7D2 eval battery, fault-injection rigs, the sealed-boot S-matrix (RED until P2), concurrency rigs (RED until P3), scoped grep-gate",
+   "trigger": "CI (node --test) + the reshape phase gates",
+   "wiredBy": [
+    ".github/workflows/ci.yml"
+   ],
+   "tests": "apps/_drafts/reshape-rig/reshape-rig.test.mjs",
+   "dependsOn": [
+    "loop-store"
+   ],
+   "owner": "harness",
+   "version": "0.1.3",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (P0 of the os-reshape plan: rigs + golden master + RED-first battery)."
+    },
+    {
+     "version": "0.1.1",
+     "date": "2026-07-01",
+     "change": "M1 peer-review fixes: hermeticity (verbatim symlinks, env stripping, async timeouts, no state/ copy, retry), correctness (G6 release sort, explicit-red assertions, strict S/X predicates), coverage (G7/G8/O2/M2/W1/W2/W4, S6-S8, X2 split, functional X1, grep-gate wired, coverage table + battery baseline)."
+    },
+    {
+     "version": "0.1.2",
+     "date": "2026-07-01",
+     "change": "os-reshape P1: relocated to apps/_drafts/reshape-rig/ (in-place reshape; behaviour unchanged unless noted in the P1 ledger entry gov-2026-07-01-043)."
+    },
+    {
+     "version": "0.1.3",
+     "date": "2026-07-01",
+     "change": "os-reshape P2: symlink-proof CLI main-guard (cliInvoked realpath) \u2014 the silent-no-op class killed repo-wide after the sealed-boot repro."
+    }
+   ]
+  },
+  {
+   "id": "os-publish",
+   "kind": "gate",
+   "type": "library",
+   "state": "candidate",
+   "path": ".system/bin/os-publish.mjs",
+   "role": "Sealed-runtime publisher: assembles the release snapshot (.system/releases/<v>/), CUT-THEN-VERIFY (doctor + no-ghost + hostile boot smoke INSIDE the snapshot), atomically repoints current|next; --verify + --boot-check (the boot banner). Fail-closed control.",
+   "trigger": "publish (manual/P4 adoption) + SessionStart boot-check",
+   "wiredBy": [],
+   "tests": "apps/_drafts/reshape-rig/reshape-rig.test.mjs (S-matrix S0-S8, X3)",
+   "dependsOn": [],
+   "owner": "harness",
+   "version": "0.1.0",
+   "versions": [
+    {
+     "version": "0.1.0",
+     "date": "2026-07-01",
+     "change": "Initial version (os-reshape P2: sealed runtime + cut-then-verify + boot-check/banner)."
+    }
+   ]
+  }
+ ]
+}

@@ -2,12 +2,12 @@
 
 This repo is the rebuilt Harness foundation: three bounded layers (governance / execution /
 data) and the wired **signal loop**. Orientation: [`README.md`](README.md) ·
-[`harness/sandbox/LOOP.md`](harness/sandbox/LOOP.md) · candidates in
+[`harness/loop/LOOP.md`](harness/loop/LOOP.md) · candidates in
 [`governance/candidates.md`](governance/candidates.md).
 
 ## The harness governs the turn — your operating protocol
 
-A `UserPromptSubmit` hook (`harness/sandbox/session-feedback/index.mjs`, wired in
+A `UserPromptSubmit` hook (`harness/loop/session-feedback/index.mjs`, wired in
 [`.claude/settings.json`](.claude/settings.json)) runs the **real** signal loop on every prompt
 *before you see it* — classify → estimate → route → execute the routed handler → record — then
 acts in one of two modes:

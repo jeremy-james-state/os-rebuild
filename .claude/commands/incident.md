@@ -1,26 +1,26 @@
 ---
 description: File or check an incident in record/incidents/ — dispatches the Investigator agent
 argument-hint: [short title of what went wrong]   (or "check" to validate all incidents)
-allowed-tools: Bash(node harness/sandbox/incident/incident.mjs:*), Bash(git log:*), Bash(git status:*), Task, Edit, Read
+allowed-tools: Bash(node apps/_drafts/incident/incident.mjs:*), Bash(git log:*), Bash(git status:*), Task, Edit, Read
 ---
 
 # /incident — file an incident via the Investigator, deterministically
 
 You don't write the incident — the **Investigator agent** investigates and fills it. The 5-step
 structure and the "done = all five present" rule are enforced by
-`harness/sandbox/incident/incident.mjs` (the deterministic exit), not by anyone remembering. The
+`apps/_drafts/incident/incident.mjs` (the deterministic exit), not by anyone remembering. The
 Investigator's law is [`governance/agents/investigator.md`](../../governance/agents/investigator.md).
 
 ## If `$ARGUMENTS` is empty or is "check"
 
-1. `node harness/sandbox/incident/incident.mjs check all`
+1. `node apps/_drafts/incident/incident.mjs check all`
 2. Report each incident's status + missing steps. A `resolved` incident with missing steps is
    **not done** (the command exits non-zero) — say so plainly.
 
 ## Otherwise (filing — `$ARGUMENTS` is the title)
 
 1. **Scaffold deterministically** — run:
-   `node harness/sandbox/incident/incident.mjs new "$ARGUMENTS"`
+   `node apps/_drafts/incident/incident.mjs new "$ARGUMENTS"`
    This writes `record/incidents/incident-<date>-<slug>.md` (all five step sections, `status: open`).
    Note the path it prints. Do NOT hand-write the structure.
 
@@ -33,7 +33,7 @@ Investigator's law is [`governance/agents/investigator.md`](../../governance/age
    - derive an **evidence-based root cause** (never a guess),
    - fill the five steps + Summary + Lesson; set `severity` / `related`,
    - set `status: resolved` **only** if all five are genuinely filled — otherwise leave `open`,
-   - **self-verify:** run `node harness/sandbox/incident/incident.mjs check <file>`; if it flags
+   - **self-verify:** run `node apps/_drafts/incident/incident.mjs check <file>`; if it flags
      RESOLVED BUT INCOMPLETE, fill the gap or drop to `open`,
    - **update the log index:** append its one line to `record/incidents/README.md`,
    - **report back ONE line:** `incident-<id>: <status> — <≤10-word summary>`.

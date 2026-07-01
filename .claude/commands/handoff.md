@@ -1,12 +1,12 @@
 ---
 description: Generate a session handoff and store it in the markdown data layer (record/handoffs/)
-allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git rev-parse:*), Bash(node harness/sandbox/handoff/handoff.mjs:*), Read, mcp__github__list_pull_requests
+allowed-tools: Bash(git status:*), Bash(git log:*), Bash(git rev-parse:*), Bash(node apps/_drafts/handoff/handoff.mjs:*), Read, mcp__github__list_pull_requests
 ---
 
 # /handoff — Session handoff (governed by the `handoff` component)
 
 Generate the handoff **body**, then hand it to the `handoff` component to **save**. The command is
-the door; the component (`harness/sandbox/handoff/handoff.mjs`) GUARANTEES the location —
+the door; the component (`apps/_drafts/handoff/handoff.mjs`) GUARANTEES the location —
 `record/handoffs/handoff-<YYYY-MM-DD>.md` (append-only history) **and** `docs/RESUME-HERE.md` (latest
 render). You do not choose where it lands; the component computes both paths from the repo root. Rule:
 [`governance/rules/handoffs.md`](../../governance/rules/handoffs.md).
@@ -31,7 +31,7 @@ render). You do not choose where it lands; the component computes both paths fro
    `id`/`session`/`git_head` header) and overwrites `docs/RESUME-HERE.md`.
 
 4. **Confirm** — report the two paths the component returned (`datedPath`, `resumePath`). Optionally
-   run `node harness/sandbox/handoff/handoff.mjs check all` to confirm the handoff is complete
+   run `node apps/_drafts/handoff/handoff.mjs check all` to confirm the handoff is complete
    (all seven sections present) — it exits non-zero if any section is missing.
 
 ## Rules

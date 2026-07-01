@@ -1,7 +1,7 @@
 # Agent: Investigator
 
 > **Definition (the law this agent runs under).** Its code is a `runner` (candidate:
-> `harness/sandbox/investigator/`); this file is its governance half — goal, prompt, gates,
+> `apps/_drafts/investigator/`); this file is its governance half — goal, prompt, gates,
 > lifecycle. Per [`../../docs/definitions/agent.md`](../../docs/definitions/agent.md): an agent is
 > an LLM-driven runner an orchestrator dispatches. Owner: `ov`. Lifecycle: **candidate**.
 

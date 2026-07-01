@@ -21,16 +21,16 @@ jobs:
         with:
           node-version: '22'
       - name: Harness doctor (drift-check, fail-closed)
-        run: node governance/enforcement/doctor.mjs
+        run: node governance/checks/doctor.mjs
       - name: Governance check (self-governance, fail-closed)
-        run: node governance/enforcement/governance-check.mjs
+        run: node governance/checks/governance-check.mjs
       - name: Structure check
-        run: node governance/enforcement/structure-check.mjs
+        run: node governance/checks/structure-check.mjs
       - name: No ghost agent
-        run: node governance/enforcement/no-ghost-agent.mjs
+        run: node governance/checks/no-ghost-agent.mjs
       - name: Harness + governance tests
         # --test-concurrency=1: run test files serially. The session-feedback CLI test spawns the
         # real doctor under the orchestrator's hard 5s spawnSync timeout; under parallel load on a
         # 2-core CI runner that doctor exceeds 5s, the loop fails-open to 'failed' (by design) and
         # the block-decision assertion flakes. Serial keeps the doctor under budget deterministically.
-        run: node --test --test-concurrency=1 $(find harness governance scripts -name '*.test.mjs')
+        run: node --test --test-concurrency=1 $(find harness apps governance .system -name '*.test.mjs')

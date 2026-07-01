@@ -1,0 +1,5 @@
+{
+  "version": "0.19",
+  "sealedAt": "2026-07-01T21:52:48.698Z",
+  "note": "Sealed OS runtime snapshot. Read-only by convention; record/ + state/ live in the workbench."
+}

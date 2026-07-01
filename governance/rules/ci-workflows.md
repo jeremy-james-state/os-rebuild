@@ -3,7 +3,7 @@
 > A GitHub Actions workflow runs code, can hold **secrets**, and can **egress data** — it is a
 > control acting on the repo, not inert config. So a workflow does not arrive by being committed:
 > it must be **declared, ledgered, and explicitly approved**. Owner: `ov`. Enforcement:
-> `governance/enforcement/governance-check.mjs` (fail-closed at the merge gate) + CODEOWNERS on
+> `governance/checks/governance-check.mjs` (fail-closed at the merge gate) + CODEOWNERS on
 > `.github/`. Registry: [`../environment.json`](../environment.json) (L3_repo.controls).
 
 ## Why

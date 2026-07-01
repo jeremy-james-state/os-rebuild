@@ -1,0 +1,43 @@
+{
+  "name": "investigator",
+  "type": "runner",
+  "role": "agent",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "definition": "governance/agents/investigator.md",
+  "summary": "LLM-driven runner that investigates and fills an incident (evidence-based root cause + the five steps). The first agent. Dispatched by /incident; runs to exit = isComplete.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "note": "Candidate. NOT admitted, NOT in the harness file. When admitted, the app moves to apps/investigator/ (state flip under review)."
+  },
+  "input": {
+    "description": "A trigger plus the scaffolded incident file to fill.",
+    "schema": {
+      "trigger": "string (the /incident invocation; later a classified escalation signal)",
+      "incidentFile": "string (path to a scaffolded record/incidents/*.md)"
+    }
+  },
+  "output": {
+    "description": "The one incident file, filled with evidence-based content.",
+    "schema": {
+      "incidentFile": "string (the same path, now filled)",
+      "status": "open | resolved"
+    }
+  },
+  "reads": ["conversation", "git", "record/", "referenced files"],
+  "writes": ["record/incidents/*.md", "record/incidents/README.md"],
+  "triggers": "request",
+  "execution": "off the main channel — background worker; caller returns immediately, notified on completion; never inline/synchronous",
+  "config": [],
+  "exit": "apps/_drafts/incident/incident.mjs isComplete (all five steps present)",
+  "provenance": true,
+  "flow": "self-contained: fill → self-verify (incident.mjs check) → append its log-index line in README.md → report one line",
+  "invariants": [
+    "Writes within record/incidents/ ONLY — its incident file (one per run) + its appended log-index line. Nothing else.",
+    "Never fabricates a root cause; unconfirmed ⇒ status: open.",
+    "Doing != deciding — it investigates/proposes, it does not fix or merge.",
+    "Independent of the cause — must not soften an incident its own session caused.",
+    "Runs to the exit (isComplete) and stops; reports a one-line result so completion doesn't bounce chores to the main channel."
+  ]
+}

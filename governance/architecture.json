@@ -1,13 +1,16 @@
 {
-  "architectureVersion": "1.0",
+  "architectureVersion": "2.0",
   "updated": "2026-07-01",
-  "description": "The OS architecture version — the outermost, slowest of the three version spaces (component semver < harness generation.release < OS architecture). It versions the SHAPE of the system, not its files or components: the tier structure, the harness boundary, and the data-layer schema shape. Bumped ONLY on such a shape change, and always with a governance-ledger entry. Governed by governance/enforcement/governance-check.mjs; NEVER by the doctor (which governs the harness, not the OS around it).",
+  "description": "The OS architecture version \u2014 the outermost, slowest of the three version spaces (component semver < harness generation.release < OS architecture). It versions the SHAPE of the system, not its files or components: the tier structure, the harness boundary, and the data-layer schema shape. Bumped ONLY on such a shape change, and always with a governance-ledger entry. Governed by governance/checks/governance-check.mjs; NEVER by the doctor (which governs the harness, not the OS around it).",
   "boundary": "docs/BOUNDARY.md",
   "tiers": [
-    "method — docs/",
-    "governance — governance/",
-    "harness — harness/",
-    "data — record/ + state/"
+    "method \u2014 docs/",
+    "governance \u2014 governance/ (checks/ = the enforcement scripts)",
+    "harness (kernel) \u2014 harness/ (loop/ + guard/)",
+    "apps (userland) \u2014 apps/ (candidates in apps/_drafts/)",
+    "skills \u2014 skills/",
+    "data \u2014 record/ + state/",
+    "back-of-house \u2014 .system/ (releases \u00b7 sync \u00b7 bin \u00b7 archive \u00b7 state)"
   ],
   "bumpWhen": [
     "a top-level tier is added or removed",
@@ -15,6 +18,15 @@
     "the data-layer schema SHAPE changes (record/SCHEMA.md)"
   ],
   "history": [
-    { "version": "1.0", "date": "2026-07-01", "change": "Locked four-tier architecture around the harness/ boundary (see docs/BOUNDARY.md, locked 2026-06-30); OS architecture version space introduced." }
+    {
+      "version": "1.0",
+      "date": "2026-07-01",
+      "change": "Locked four-tier architecture around the harness/ boundary (see docs/BOUNDARY.md, locked 2026-06-30); OS architecture version space introduced."
+    },
+    {
+      "version": "2.0",
+      "date": "2026-07-01",
+      "change": "os-reshape P1: six-concept OS shape (harness/loop+guard, apps/_drafts, skills, .system back-of-house); registry merged into the manifest (one spine file); checks/ renamed from enforcement/; lifecycle state decoupled from location. Ledger gov-2026-07-01-043; execution plan docs/superpowers/specs/2026-07-01-os-reshape-execution-plan.md."
+    }
   ]
 }

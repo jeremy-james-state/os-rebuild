@@ -1,19 +1,62 @@
 {
-  "version": 1,
-  "note": "Capability grants the harness enforces. Write-zones are DECLARED here; runtime enforcement is the write-fence (Stage 2), merge-time enforcement is CODEOWNERS + branch protection (active). Human spec: governance/decisions/write-zones.md.",
-  "writeZones": [
-    { "owner": "builder",        "writes": ["harness/"],                       "note": "the executing code" },
-    { "owner": "architect",      "writes": ["governance/decisions/", "harness/**/contract.json"], "note": "design, blueprints, component shapes" },
-    { "owner": "ov",             "writes": ["governance/rules/", "governance/permissions.json", "record/", "STATUS.md"], "note": "rules, the authority map, memory, status truth. record/ runtime streams are gitignored (durable home = the Data Layer); the governance-ledger stays tracked (audit trail, CI-validated). Shape: record/SCHEMA.md" },
-    { "owner": "doc-maintainer", "writes": ["docs/"],                          "note": "human knowledge + the wiki" },
-    { "owner": "stores",         "writes": ["record/<one-table-per-store>"],   "note": "sole-writer: one store owns one table" },
-    { "owner": "reducers",       "writes": ["state/"],                         "note": "rebuildable projections only (gitignored)" }
-  ],
-  "frozen": [],
-  "enforcement": {
-    "runtime": "pending: write-fence reads contract writes: (Stage 2)",
-    "merge": "active: CODEOWNERS + branch protection"
+ "version": 1,
+ "note": "Capability grants the harness enforces. Write-zones are DECLARED here; runtime enforcement is the write-fence (Stage 2), merge-time enforcement is CODEOWNERS + branch protection (active). Human spec: governance/decisions/write-zones.md.",
+ "writeZones": [
+  {
+   "owner": "builder",
+   "writes": [
+    "harness/",
+    "apps/",
+    ".system/"
+   ],
+   "note": "the executing code"
   },
-  "allow": [],
-  "deny": []
+  {
+   "owner": "architect",
+   "writes": [
+    "governance/decisions/",
+    "harness/**/contract.json",
+    "apps/**/contract.json"
+   ],
+   "note": "design, blueprints, component shapes"
+  },
+  {
+   "owner": "ov",
+   "writes": [
+    "governance/rules/",
+    "governance/permissions.json",
+    "record/",
+    "STATUS.md"
+   ],
+   "note": "rules, the authority map, memory, status truth. record/ runtime streams are gitignored (durable home = the Data Layer); the governance-ledger stays tracked (audit trail, CI-validated). Shape: record/SCHEMA.md"
+  },
+  {
+   "owner": "doc-maintainer",
+   "writes": [
+    "docs/"
+   ],
+   "note": "human knowledge + the wiki"
+  },
+  {
+   "owner": "stores",
+   "writes": [
+    "record/<one-table-per-store>"
+   ],
+   "note": "sole-writer: one store owns one table"
+  },
+  {
+   "owner": "reducers",
+   "writes": [
+    "state/"
+   ],
+   "note": "rebuildable projections only (gitignored)"
+  }
+ ],
+ "frozen": [],
+ "enforcement": {
+  "runtime": "pending: write-fence reads contract writes: (Stage 2)",
+  "merge": "active: CODEOWNERS + branch protection"
+ },
+ "allow": [],
+ "deny": []
 }

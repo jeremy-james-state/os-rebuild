@@ -1,0 +1,27 @@
+{
+  "name": "estimator",
+  "type": "runner",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "query",
+  "summary": "Scores a work item so the orchestrator can prioritise it — 'estimator scores, scheduler dispatches'. A runner the orchestrator CONSULTS; it never dispatches. Deterministic rubric (value·confidence + readiness − effort); swappable to an LLM scorer behind the same contract.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": { "description": "A classified work item.", "schema": { "type": "string", "confidence": "high|medium|low", "target": "string" } },
+  "output": { "description": "A score.", "schema": { "score": "integer 0..100", "band": "high|medium|low", "factors": "object" } },
+  "reads": ["record/classified.jsonl"],
+  "writes": ["record/estimates.jsonl"],
+  "triggers": "request",
+  "execution": "inline",
+  "exit": "Returns a bounded score (0..100) + band; never dispatches.",
+  "provenance": true,
+  "invariants": [
+    "Scores only; never dispatches (separation: estimator scores, orchestrator routes).",
+    "Score is bounded 0..100 and deterministic for a given item.",
+    "readiness is 1 only when the target is a real, named component (target != 'unknown')."
+  ]
+}

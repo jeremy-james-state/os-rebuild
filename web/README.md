@@ -18,7 +18,7 @@ record/<stream>.jsonl  (truth, git)
       │ node harness/sandbox/loop-store/index.mjs project
       ▼
 state/os.db (readable SQLite)
-      │ OS_SUPABASE_KEY=… node scripts/sync-supabase.mjs   (service key; writes via RLS-exempt role)
+      │ OS_SUPABASE_KEY=… node .system/sync/sync-supabase.mjs   (service key; writes via RLS-exempt role)
       ▼
 Supabase public.osr_loop_events  (version-stamped; RLS: public read)
       │ anon key (public)
@@ -30,7 +30,7 @@ this dashboard
 
 ```sh
 vercel deploy --prod --yes --cwd web        # redeploy the static site (authed as jeremy-james-state)
-OS_SUPABASE_KEY=… node scripts/sync-supabase.mjs   # push the latest events to the projection
+OS_SUPABASE_KEY=… node .system/sync/sync-supabase.mjs   # push the latest events to the projection
 ```
 
 The anon key embedded in `index.html` is a **publishable** key (read-only via RLS) — safe to

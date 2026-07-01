@@ -1,0 +1,8 @@
+{
+  "$comment": "G8/G9 baseline for the os-reshape merge gate. testFiles = *.test.mjs discovered by the CI find glob; tests = node:test pass count of the full battery on the P0 baseline run; checks = the four enforcement checks. The G8 rig test asserts the DISCOVERED file count never drops below testFiles (tests silently vanishing from CI is the failure this catches); the ≥100 total-check invariant = tests + checks ≥ 100. Update deliberately (with a note) when tests are added; never silently.",
+  "capturedAt": "2026-07-01",
+  "capturedOn": "os-reshape @ P0 (release 0.14)",
+  "testFiles": 24,
+  "tests": 230,
+  "checks": 4
+}

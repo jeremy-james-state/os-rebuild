@@ -1,0 +1,28 @@
+{
+  "name": "pipeline",
+  "type": "orchestrator",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "command",
+  "summary": "The gated work chain: pre-frame → frame → scope → design → build → deploy → observe. Walks the stages and stops at each gate awaiting a human approval — recorded (a 'gates' row), never a live block. Event-sourced + resumable: approve a gate, re-run, it continues. Stages never fake a runner; each records its owning (planned) component + a stub status.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": { "description": "A work item.", "schema": { "id": "string", "summary": "string" } },
+  "output": { "description": "Where the walk stopped.", "schema": { "status": "awaiting-gate|complete", "stage": "string", "gateId": "string" } },
+  "reads": ["record/chain.jsonl", "record/gates.jsonl"],
+  "writes": ["record/chain.jsonl", "record/gates.jsonl"],
+  "triggers": "request",
+  "execution": "inline",
+  "exit": "Stops at the first unapproved gate (awaiting-gate) or runs out of stages (complete) — never blocks waiting on a human.",
+  "provenance": true,
+  "invariants": [
+    "A gate is recorded ('pending'), never a live block — the human approves asynchronously.",
+    "Resumable + event-sourced: the frontier is derived from the chain/gates streams.",
+    "No stage fakes a runner — each records its owning (planned) component + a stub status.",
+    "approve is idempotent."
+  ]
+}

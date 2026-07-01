@@ -3,9 +3,9 @@
 > Every session handoff MUST be saved to `record/handoffs/handoff-<YYYY-MM-DD>.md` — the
 > append-only, tracked-markdown history — and rendered to `docs/RESUME-HERE.md`, the always-current
 > "read this first". **Never at repo root, never anywhere else.** The `handoff` component
-> (`harness/sandbox/handoff/`) is the deterministic guarantor of that location.
+> (`apps/_drafts/handoff/`) is the deterministic guarantor of that location.
 > Owner: `harness`. Enforcement: the component's test + the merge gate (deterministic), not a
-> declaration. Normative code: [`../../harness/sandbox/handoff/handoff.mjs`](../../harness/sandbox/handoff/handoff.mjs).
+> declaration. Normative code: [`../../apps/_drafts/handoff/handoff.mjs`](../../apps/_drafts/handoff/handoff.mjs).
 
 ## Why
 
@@ -31,13 +31,13 @@ the gate**, exactly as `incident` guarantees `record/incidents/`.
 
 ## Enforced by
 
-- `harness/sandbox/handoff/handoff.test.mjs` — proves `save()` writes under `record/handoffs/` with
+- `apps/_drafts/handoff/handoff.test.mjs` — proves `save()` writes under `record/handoffs/` with
   the `handoff-<date>.md` name, writes `docs/RESUME-HERE.md`, that the location is derived (not
   redirectable), and that an incomplete handoff is flagged. **If the save path ever changes, this
   test fails.**
 - The merge gate runs the doctor + the full test suite; a regressed save location or a broken
   contract is rejected before merge.
-- `harness/sandbox/handoff/contract.json` declares `writes: ["record/handoffs/", "docs/RESUME-HERE.md"]`
+- `apps/_drafts/handoff/contract.json` declares `writes: ["record/handoffs/", "docs/RESUME-HERE.md"]`
   — the write-zone declaration, validated against `harness/contract.schema.json` by the doctor.
 
 ## The hard line

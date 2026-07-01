@@ -1,0 +1,31 @@
+{
+  "name": "orchestrator",
+  "type": "orchestrator",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "command",
+  "summary": "The loop driver (scheduler). Runs one signal through extract → classify → estimate → dispatch → terminal outcome (completed|unknown|failed), opening a span per hop and recording every step via loop-store. Dispatches ONLY to real handlers; an unknown target becomes an explicit 'unknown' — it can never fake an agent call.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": { "description": "A signal (typically a captured prompt).", "schema": { "summary": "string", "source": "string" } },
+  "output": {
+    "description": "The full traced run + human feedback lines.",
+    "schema": { "outcome": "{ status: completed|unknown|failed, target }", "feedback": "string[]", "trace": "object" }
+  },
+  "reads": ["record/signals.jsonl", "record/classified.jsonl", "record/estimates.jsonl"],
+  "writes": ["record/signals.jsonl", "record/classified.jsonl", "record/estimates.jsonl", "record/runs.jsonl"],
+  "triggers": "request",
+  "execution": "inline",
+  "exit": "Records exactly one terminal run outcome (completed|unknown|failed) — never open, never silent.",
+  "provenance": true,
+  "invariants": [
+    "Every run ends in exactly one terminal outcome: completed | unknown | failed.",
+    "Dispatch goes only to a real handler in the table; an unrecognised target is 'unknown' (no ghost dispatch).",
+    "Every hop is one span on one trace; every recorded row carries the four-tuple.",
+    "The classifier scores the signal, the estimator scores the work, the orchestrator routes — separated."
+  ]
+}

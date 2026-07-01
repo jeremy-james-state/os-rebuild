@@ -1,0 +1,31 @@
+{
+  "name": "classifier",
+  "type": "runner",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "query",
+  "summary": "Second hop of the loop: signal -> { type, intent, confidence, target }. Rules-based + deterministic today; same contract for an LLM-backed classifier later. Honesty rule: unmatched -> explicit 'unknown', never a fabricated target.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": { "description": "One signal.", "schema": { "summary": "string" } },
+  "output": {
+    "description": "A classification.",
+    "schema": { "type": "string", "intent": "string", "confidence": "high|medium|low", "target": "string (component id or 'unknown')" }
+  },
+  "reads": ["record/signals.jsonl"],
+  "writes": ["record/classified.jsonl"],
+  "triggers": "request",
+  "execution": "inline",
+  "exit": "Returns a classification with an explicit confidence and target (possibly 'unknown').",
+  "provenance": true,
+  "invariants": [
+    "Every signal gets a classification — never silently dropped.",
+    "An unmatched signal yields type/target 'unknown' at low confidence — no fabricated target.",
+    "Deterministic: identical input yields identical output (until an LLM path is opted in).",
+    "Confidence is one of high|medium|low (architecture confidence routing)."
+  ]
+}

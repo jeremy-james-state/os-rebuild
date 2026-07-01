@@ -16,8 +16,8 @@ In a session opened here, type a command — the loop runs and prints its trace:
 
 Or run it directly:
 ```sh
-node harness/sandbox/orchestrator/index.mjs --demo "check the harness for drift"
-printf '{"prompt":"the deploy failed"}' | node harness/sandbox/session-feedback/index.mjs
+node harness/loop/orchestrator/index.mjs --demo "check the harness for drift"
+printf '{"prompt":"the deploy failed"}' | node harness/loop/session-feedback/index.mjs
 ```
 
 ## The three layers (the boundary is the point)
@@ -28,7 +28,7 @@ printf '{"prompt":"the deploy failed"}' | node harness/sandbox/session-feedback/
 | Layer | Where | What | Overview |
 |---|---|---|---|
 | **governance** — the law + its enforcement | `governance/` | rules, decisions, permissions, candidates, and the checks that bite | [`governance/README.md`](governance/README.md) |
-| **execution** — the running instance | `harness/` | the loop (components by type under `sandbox/`), the manifest/registry | [`harness/sandbox/LOOP.md`](harness/sandbox/LOOP.md) |
+| **execution** — the running instance | `harness/` | the loop (components by type under `sandbox/`), the manifest/registry | [`harness/loop/LOOP.md`](harness/loop/LOOP.md) |
 | **data** — append-only truth + readable view | `record/` → `state/os.db` | JSONL logs (signals, runs, classified, estimates, incidents) projected into a readable SQLite table | [`record/README.md`](record/README.md) |
 
 The boundary itself: [`docs/BOUNDARY.md`](docs/BOUNDARY.md) · the constitution:
@@ -41,7 +41,7 @@ extract → classify → estimate → route → outcome (completed | unknown | f
                                                       └─ reconciler raises any limbo
 ```
 
-Full map + pieces: [`harness/sandbox/LOOP.md`](harness/sandbox/LOOP.md). Every hop is one
+Full map + pieces: [`harness/loop/LOOP.md`](harness/loop/LOOP.md). Every hop is one
 span on one **trace**; every row carries the four-tuple `session · run · call · branch` and
 lands in the readable `state/os.db`.
 
@@ -49,18 +49,18 @@ lands in the readable `state/os.db`.
 - **Nothing fails silently** — every signal ends in a terminal outcome; the `reconciler`
   raises any that don't.
 - **No ghost agents** — the dispatcher routes only to real handlers; an unknown target is an
-  explicit `unknown`, and `governance/enforcement/no-ghost-agent.mjs` fails the build if any
+  explicit `unknown`, and `governance/checks/no-ghost-agent.mjs` fails the build if any
   routing target resolves to nothing real.
 
 ## Check it (the gate)
 
 ```sh
-node governance/enforcement/doctor.mjs            # harness drift-check (fail-closed)
-node governance/enforcement/governance-check.mjs  # self-governance + ledger integrity
-node governance/enforcement/structure-check.mjs   # top-level schema
-node governance/enforcement/no-ghost-agent.mjs    # every routing target is real
-node --test harness/sandbox/**/**.test.mjs governance/enforcement/*.test.mjs
-node harness/sandbox/loop-store/index.mjs project && sqlite3 state/os.db \
+node governance/checks/doctor.mjs            # harness drift-check (fail-closed)
+node governance/checks/governance-check.mjs  # self-governance + ledger integrity
+node governance/checks/structure-check.mjs   # top-level schema
+node governance/checks/no-ghost-agent.mjs    # every routing target is real
+node --test harness/sandbox/**/**.test.mjs governance/checks/*.test.mjs
+node harness/loop/loop-store/index.mjs project && sqlite3 state/os.db \
   'select stream,n,status,summary from events order by ts;'   # read the data layer
 ```
 

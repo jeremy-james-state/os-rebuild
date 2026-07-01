@@ -2,7 +2,7 @@
   "$comment": "Tracked Claude Code session config for os-rebuild. Three wirings: (1) statusLine renders the latest loop trace in the status bar (always-visible, deterministic). (2) The UserPromptSubmit hook (session-feedback) makes the harness GOVERN the turn: it runs the real loop before the model sees the prompt; an explicit 'os:' command that completes at high confidence returns decision:block (model BYPASSED, real result shown — ENFORCED), everything else injects the trace + an operating protocol (model runs, STEERED). (3) The PreToolUse hook (confinement) blocks tool calls targeting sibling projects, keeping the session inside os-rebuild. All FAIL-OPEN. Wired candidates are still candidates (governance/rules/harness-admission.md), not admitted. Hooks/statusLine load at session start — open THIS folder as the project for any of it to apply.",
   "statusLine": {
     "type": "command",
-    "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/session-feedback/statusline.mjs\""
+    "command": "node \"$CLAUDE_PROJECT_DIR/.system/bin/os-boot.mjs\" statusline"
   },
   "hooks": {
     "PreToolUse": [
@@ -10,7 +10,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/confinement/index.mjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard/confinement/index.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard/harness-lock/index.mjs\""
           }
         ]
       }
@@ -20,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/session-feedback/index.mjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.system/bin/os-boot.mjs\" session-feedback"
           }
         ]
       }
