@@ -248,6 +248,40 @@ export function checkDeclaredWorkflows(root) {
   return out
 }
 
+// The OS architecture version (governance/architecture.json) is the outermost version space —
+// governed HERE (never by the doctor). Integrity is fail-closed: version present, matching the
+// latest history entry, and pointing at a boundary doc that exists.
+export function checkArchitectureVersion(root) {
+  const p = join(root, 'governance', 'architecture.json')
+  let arch
+  try {
+    arch = JSON.parse(readFileSync(p, 'utf8'))
+  } catch (e) {
+    if (e.code === 'ENOENT') return [finding('ERROR', 'architecture-missing',
+      `governance/architecture.json (the OS architecture version) is missing.`,
+      `Restore it — the OS architecture version (tiers/boundary/data-schema shape) lives here.`)]
+    return [finding('ERROR', 'architecture-unreadable',
+      `Cannot read '${rel(root, p)}': ${e.message}`, 'Fix the JSON.')]
+  }
+  const out = []
+  if (!arch.architectureVersion) {
+    out.push(finding('ERROR', 'architecture-no-version',
+      `governance/architecture.json has no architectureVersion.`, 'Add an architectureVersion string.'))
+  }
+  const hist = Array.isArray(arch.history) ? arch.history : []
+  if (arch.architectureVersion && hist.length && hist[hist.length - 1].version !== arch.architectureVersion) {
+    out.push(finding('ERROR', 'architecture-version-mismatch',
+      `architectureVersion '${arch.architectureVersion}' != latest history entry '${hist[hist.length - 1].version}'.`,
+      'Add a history entry (and a governance-ledger line) whenever architectureVersion changes.'))
+  }
+  if (arch.boundary && !existsSync(join(root, arch.boundary))) {
+    out.push(finding('ERROR', 'architecture-boundary-missing',
+      `governance/architecture.json references boundary '${arch.boundary}' which does not exist.`,
+      'Fix the boundary path (should point at docs/BOUNDARY.md).'))
+  }
+  return out
+}
+
 export function runGovernanceCheck({ root = DEFAULT_ROOT } = {}) {
   const findings = [
     ...checkLedgerIntegrity(root),
@@ -255,6 +289,7 @@ export function runGovernanceCheck({ root = DEFAULT_ROOT } = {}) {
     ...checkOrphanDocs(root),
     ...checkWriteZones(root),
     ...checkDeclaredWorkflows(root),
+    ...checkArchitectureVersion(root),
   ]
   return { findings }
 }

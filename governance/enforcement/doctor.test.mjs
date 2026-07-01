@@ -7,8 +7,9 @@ import { join } from 'node:path'
 import {
   checkComponents, checkDependencies, checkSequence,
   checkChain, checkMdSync, runDoctor, checkSchemas, checkSandboxContainment,
+  checkVersionChangelog, checkIndexSync, checkChangelogSync, checkReleaseConsistency,
 } from './doctor.mjs'
-import { render } from '../../harness/render.mjs'
+import { render, renderIndex, renderChangelog } from '../../harness/render.mjs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -68,6 +69,55 @@ test('checkSandboxContainment: a sandbox-path row with non-sandbox state is ERRO
   assert.deepEqual(codes(f), ['sandbox-path-non-sandbox-state'])
   assert.equal(f[0].severity, 'ERROR')
   assert.ok(f[0].message.includes("'self-admitted'"))
+})
+
+test('checkVersionChangelog: version without/mismatched versions[] is ERROR', () => {
+  const good = { components: [{ id: 'a', version: '1.2.0', versions: [{ version: '1.1.0' }, { version: '1.2.0' }] }] }
+  assert.deepEqual(checkVersionChangelog(good), [])
+  const noHist = { components: [{ id: 'b', version: '1.0.0' }] }
+  assert.deepEqual(codes(checkVersionChangelog(noHist)), ['version-without-history'])
+  const mismatch = { components: [{ id: 'c', version: '2.0.0', versions: [{ version: '1.0.0' }] }] }
+  assert.deepEqual(codes(checkVersionChangelog(mismatch)), ['version-changelog-mismatch'])
+})
+
+test('checkIndexSync: stale/missing harness/index.md is ERROR; matching is clean', () => {
+  const root = tmpRoot()
+  try {
+    mkdirSync(join(root, 'harness'), { recursive: true })
+    const manifest = { components: [{ id: 'x', kind: 'k', type: 'library', state: 'sandbox', path: 'harness/sandbox/x/', role: 'r', version: '0.1.0' }] }
+    assert.deepEqual(codes(checkIndexSync(manifest, root)), ['index-missing'])
+    writeFileSync(join(root, 'harness/index.md'), renderIndex(manifest.components))
+    assert.deepEqual(checkIndexSync(manifest, root), [])
+    writeFileSync(join(root, 'harness/index.md'), 'stale\n')
+    assert.deepEqual(codes(checkIndexSync(manifest, root)), ['index-stale'])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkChangelogSync: a stale per-component CHANGELOG.md is ERROR; matching/absent is clean', () => {
+  const root = tmpRoot()
+  try {
+    const c = { id: 'x', path: 'comp/', version: '0.1.0', versions: [{ version: '0.1.0', date: '2026-07-01', change: 'init' }] }
+    const manifest = { components: [c] }
+    assert.deepEqual(checkChangelogSync(manifest, root), []) // absent → not checked
+    mkdirSync(join(root, 'comp'), { recursive: true })
+    writeFileSync(join(root, 'comp/CHANGELOG.md'), renderChangelog(c))
+    assert.deepEqual(checkChangelogSync(manifest, root), [])
+    writeFileSync(join(root, 'comp/CHANGELOG.md'), 'stale\n')
+    assert.deepEqual(codes(checkChangelogSync(manifest, root)), ['changelog-stale'])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkReleaseConsistency: missing record + pin drift are ERROR; matching is clean', () => {
+  const root = tmpRoot()
+  try {
+    const manifest = { harnessVersion: '0.9', components: [{ id: 'x', version: '0.1.0' }, { id: 'y', version: '0.2.0' }] }
+    assert.deepEqual(codes(checkReleaseConsistency(manifest, root)), ['release-missing'])
+    mkdirSync(join(root, 'harness/releases'), { recursive: true })
+    writeFileSync(join(root, 'harness/releases/0.9.json'), JSON.stringify({ pins: { x: '0.1.0', y: '9.9.9' } }))
+    assert.deepEqual(codes(checkReleaseConsistency(manifest, root)), ['release-pin-drift'])
+    writeFileSync(join(root, 'harness/releases/0.9.json'), JSON.stringify({ pins: { x: '0.1.0', y: '0.2.0' } }))
+    assert.deepEqual(checkReleaseConsistency(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
 test('checkDependencies: missing dep + production-on-sandbox are ERROR; on-staging is WARN', () => {

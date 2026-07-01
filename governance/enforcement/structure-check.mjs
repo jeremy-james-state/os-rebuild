@@ -8,7 +8,7 @@
 //
 // Any shape drift is WARN-only (exit 0).
 
-import { readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -52,6 +52,17 @@ export function runStructureCheck({ root = DEFAULT_ROOT } = {}) {
       'STRUCTURE_DRIFT',
       `Unexpected top-level directory '${dir}/' is outside the canonical schema.`,
       `Relocate it under an allowed tier, archive it, or add a human-approved schema decision before introducing a new top-level folder.`,
+    ))
+  }
+
+  // The maintained OS index (docs/OS-INDEX.md) is the human front door to the tiers. It is
+  // hand-maintained prose (unlike the generated harness/index.md), so its absence is WARN-only.
+  if (!existsSync(join(root, 'docs', 'OS-INDEX.md'))) {
+    findings.push(finding(
+      'WARN',
+      'STRUCTURE_DRIFT',
+      `docs/OS-INDEX.md (the maintained OS index) is missing.`,
+      `Restore docs/OS-INDEX.md — the front-door map of the four tiers.`,
     ))
   }
 

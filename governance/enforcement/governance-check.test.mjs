@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 
-import { runGovernanceCheck, checkDeclaredWorkflows } from './governance-check.mjs'
+import { runGovernanceCheck, checkDeclaredWorkflows, checkArchitectureVersion } from './governance-check.mjs'
 
 function tmpRoot() { return mkdtempSync(join(tmpdir(), 'governance-check-')) }
 
@@ -34,6 +34,11 @@ function makeCleanRepo(root) {
     '- governance/decisions/decision-a.md',
     '- governance/rules/rule-a.md',
   ].join('\n'))
+  write(root, 'docs/BOUNDARY.md', '# boundary\n')
+  write(root, 'governance/architecture.json', JSON.stringify({
+    architectureVersion: '1.0', boundary: 'docs/BOUNDARY.md',
+    history: [{ version: '1.0', date: '2026-07-01', change: 'seed' }],
+  }, null, 2))
 }
 
 test('runGovernanceCheck: clean governance repo passes', () => {
@@ -41,6 +46,24 @@ test('runGovernanceCheck: clean governance repo passes', () => {
   try {
     makeCleanRepo(root)
     assert.deepEqual(runGovernanceCheck({ root }).findings, [])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('checkArchitectureVersion: missing file + version/history mismatch are ERROR; clean is []', () => {
+  const root = tmpRoot()
+  try {
+    assert.ok(checkArchitectureVersion(root).some((f) => f.code === 'architecture-missing'))
+    write(root, 'docs/BOUNDARY.md', '# b\n')
+    write(root, 'governance/architecture.json', JSON.stringify({
+      architectureVersion: '2.0', boundary: 'docs/BOUNDARY.md', history: [{ version: '1.0' }],
+    }))
+    assert.deepEqual(checkArchitectureVersion(root).map((f) => f.code), ['architecture-version-mismatch'])
+    write(root, 'governance/architecture.json', JSON.stringify({
+      architectureVersion: '1.0', boundary: 'docs/BOUNDARY.md', history: [{ version: '1.0' }],
+    }))
+    assert.deepEqual(checkArchitectureVersion(root), [])
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

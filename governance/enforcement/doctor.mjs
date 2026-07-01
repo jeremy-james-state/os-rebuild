@@ -19,7 +19,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve, join, basename } from 'node:path'
-import { render } from '../../harness/render.mjs'
+import { render, renderIndex, renderChangelog } from '../../harness/render.mjs'
 import { validate } from './schema-validate.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -267,14 +267,14 @@ export function checkMdSync(manifest, root) {
   const mdPath = join(root, 'harness', 'manifest.md')
   const expected = render(manifest)
   if (!existsSync(mdPath)) {
-    out.push(finding('WARN', 'md-twin-missing',
+    out.push(finding('ERROR', 'md-twin-missing',
       `harness/manifest.md (the human-readable twin) is missing.`,
       `Run: node harness/render.mjs --write`))
     return out
   }
   const actual = readFileSync(mdPath, 'utf8')
   if (actual !== expected) {
-    out.push(finding('WARN', 'md-twin-stale',
+    out.push(finding('ERROR', 'md-twin-stale',
       `harness/manifest.md is out of sync with manifest.json.`,
       `Run: node harness/render.mjs --write (and commit the result).`))
   }
@@ -331,6 +331,92 @@ export function checkSchemas(root = DEFAULT_ROOT) {
   return out
 }
 
+// A component that declares a version must carry a matching versions[] history entry — the
+// structured source the CHANGELOG.md is generated from. Control (fail-closed): a version with no
+// history line is an unrecorded change.
+export function checkVersionChangelog(manifest) {
+  const out = []
+  for (const c of manifest.components || []) {
+    if (!c.version) continue
+    const vs = c.versions || []
+    if (!vs.length) {
+      out.push(finding('ERROR', 'version-without-history',
+        `Component '${c.id}' declares version '${c.version}' but has no versions[] history.`,
+        `Add a versions[] entry {version,date,change} for '${c.version}'.`))
+      continue
+    }
+    const last = vs[vs.length - 1]
+    if (last.version !== c.version) {
+      out.push(finding('ERROR', 'version-changelog-mismatch',
+        `Component '${c.id}' version '${c.version}' != latest versions[] entry '${last.version}'.`,
+        `Bump versions[] (and regenerate CHANGELOG.md) whenever version changes.`))
+    }
+  }
+  return out
+}
+
+// harness/index.md is GENERATED from registry.json — it must byte-match renderIndex(). Fail-closed,
+// exactly like the manifest.md twin.
+export function checkIndexSync(manifest, root) {
+  const out = []
+  const p = join(root, 'harness', 'index.md')
+  const expected = renderIndex(manifest.components || [])
+  if (!existsSync(p)) {
+    out.push(finding('ERROR', 'index-missing', `harness/index.md is missing.`, `Run: node harness/render.mjs --index`))
+    return out
+  }
+  if (readFileSync(p, 'utf8') !== expected) {
+    out.push(finding('ERROR', 'index-stale', `harness/index.md is out of sync with registry.json.`, `Run: node harness/render.mjs --index (and commit).`))
+  }
+  return out
+}
+
+// Each committed per-component CHANGELOG.md must byte-match renderChangelog(row). Fail-closed.
+// Only components that HAVE a CHANGELOG.md are checked (P1-b generates one per existing dir).
+export function checkChangelogSync(manifest, root) {
+  const out = []
+  for (const c of manifest.components || []) {
+    const p = join(root, c.path, 'CHANGELOG.md')
+    if (!existsSync(p)) continue
+    if (readFileSync(p, 'utf8') !== renderChangelog(c)) {
+      out.push(finding('ERROR', 'changelog-stale',
+        `${c.path}CHANGELOG.md is out of sync with its registry versions[].`,
+        `Run: node harness/render.mjs --changelogs (and commit).`))
+    }
+  }
+  return out
+}
+
+// The harness release version must have a release record pinning the current component set.
+// Fail-closed. Tag/push reconciliation is the reconciler's fail-open job (P1-e), not a hard gate.
+export function checkReleaseConsistency(manifest, root) {
+  const out = []
+  const hv = manifest.harnessVersion
+  if (!hv) return out
+  const p = join(root, 'harness', 'releases', `${hv}.json`)
+  if (!existsSync(p)) {
+    out.push(finding('ERROR', 'release-missing',
+      `No release record harness/releases/${hv}.json for harnessVersion '${hv}'.`,
+      `Cut the release (pin the component set), or fix harnessVersion.`))
+    return out
+  }
+  let rel
+  try { rel = JSON.parse(readFileSync(p, 'utf8')) } catch (e) {
+    out.push(finding('ERROR', 'release-unreadable', `harness/releases/${hv}.json: ${e.message}`, 'Fix the release JSON.'))
+    return out
+  }
+  const pins = rel.pins || {}
+  for (const c of manifest.components || []) {
+    if (!c.version) continue
+    if (pins[c.id] !== c.version) {
+      out.push(finding('ERROR', 'release-pin-drift',
+        `Release ${hv} pins '${c.id}'=${pins[c.id] ?? '(absent)'} but registry has ${c.version}.`,
+        `Re-cut the release to pin current versions, or bump harnessVersion for a new release.`))
+    }
+  }
+  return out
+}
+
 // --- runner ------------------------------------------------------------------
 
 export function runDoctor({ root = DEFAULT_ROOT, manifestPath = DEFAULT_MANIFEST, registryPath = DEFAULT_REGISTRY } = {}) {
@@ -359,6 +445,10 @@ export function runDoctor({ root = DEFAULT_ROOT, manifestPath = DEFAULT_MANIFEST
     ...checkContext(merged, root),
     ...checkChain(merged),
     ...checkMdSync(merged, root),
+    ...checkVersionChangelog(merged),
+    ...checkIndexSync(merged, root),
+    ...checkChangelogSync(merged, root),
+    ...checkReleaseConsistency(merged, root),
   ]
   return { findings, manifest: merged }
 }
