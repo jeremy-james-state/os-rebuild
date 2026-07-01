@@ -59,8 +59,8 @@
 | approve-hook | 0.1.0 | planned | hook | `harness/hooks/approve-hook/` | UserPromptSubmit hook intercepting 'approve <item> <stage>' prompts |
 | away-gate | 0.1.0 | planned | hook | `harness/hooks/away-gate/` | PreToolUse safety gate for Auto Mode: allow read/test/git-safe/draft, deny deploy/external-send/money/destructive |
 | capture-hook | 0.1.0 | planned | hook | `harness/hooks/capture-hook/` | UserPromptSubmit hook for +task / +list instant capture (no model turn) |
-| confinement | 0.1.0 | sandbox | gate | `harness/sandbox/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
-| harness-lock | 0.1.0 | sandbox | gate | `harness/sandbox/harness-lock/` | PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error. |
+| confinement | 0.2.0 | sandbox | gate | `harness/sandbox/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
+| harness-lock | 0.2.0 | sandbox | gate | `harness/sandbox/harness-lock/` | PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error. |
 | pre-push-hook | 0.1.0 | planned | hook | `harness/hooks/pre-push-hook/` | Git pre-push entry point that delegates to decision-enforcer |
 | session-feedback | 0.1.0 | sandbox | hook | `harness/sandbox/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |
 | session-start-hook | 0.1.0 | planned | hook | `harness/hooks/session-start-hook/` | SessionStart: validate workspace binding, fail-closed on wrong checkout, inject continuity packet |

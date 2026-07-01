@@ -6,3 +6,4 @@
 | Version | Date | Change |
 | --- | --- | --- |
 | 0.1.0 | 2026-07-01 | Initial version. |
+| 0.2.0 | 2026-07-01 | Add dormant decideBranchDiscipline + reconciler orphan-clear (not wired). |

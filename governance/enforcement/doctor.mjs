@@ -417,6 +417,67 @@ export function checkReleaseConsistency(manifest, root) {
   return out
 }
 
+// MANDATE: a component whose files changed since the latest harness release WITHOUT its version
+// bumping is drift. Control (fail-closed on the finding) but FAIL-OPEN on any git/tag/release-read
+// error — a check that can't establish a baseline must not manufacture false drift. It returns [] on:
+// no git, no release tag, no/unreadable release record, or any git diff error. Never throws.
+//
+// Baseline = the highest 'harness-vX.Y' tag; its pins live in harness/releases/<X.Y>.json. For each
+// component, if `git diff --name-only <tag> HEAD -- <path>` (excluding that dir's CHANGELOG.md, which
+// is generated) is non-empty AND the component's version still equals its pin at that release, the
+// change was shipped with no version bump → ERROR.
+export function checkVersionBumpOnChange(manifest, root) {
+  const out = []
+  const git = (args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' })
+
+  // Find the latest release tag (highest X.Y), fail-open if none / no git.
+  let tag, version
+  try {
+    const tags = git(['tag', '--list', 'harness-v*']).split('\n').map(t => t.trim()).filter(Boolean)
+    if (!tags.length) return []
+    const parse = (t) => {
+      const m = /^harness-v(\d+)\.(\d+)$/.exec(t)
+      return m ? [Number(m[1]), Number(m[2])] : null
+    }
+    let best = null
+    for (const t of tags) {
+      const v = parse(t)
+      if (!v) continue
+      if (!best || v[0] > best.v[0] || (v[0] === best.v[0] && v[1] > best.v[1])) best = { t, v }
+    }
+    if (!best) return []
+    tag = best.t
+    version = tag.replace(/^harness-v/, '')
+  } catch { return [] }
+
+  // Read that release's pins, fail-open if missing/unreadable.
+  let pins
+  try {
+    const rel = JSON.parse(readFileSync(join(root, 'harness', 'releases', `${version}.json`), 'utf8'))
+    pins = rel.pins || {}
+  } catch { return [] }
+
+  for (const c of manifest.components || []) {
+    if (!c.version || !c.path) continue
+    if (!(c.id in pins)) continue // component didn't exist at the release baseline — nothing to compare
+    let changed = []
+    try {
+      changed = git(['diff', '--name-only', tag, 'HEAD', '--', c.path])
+        .split('\n').map(f => f.trim()).filter(Boolean)
+    } catch { return [] } // any diff error → fail-open for the whole check
+    const p = c.path.replace(/\/+$/, '')
+    const changelogPath = `${p}/CHANGELOG.md`
+    const substantive = changed.filter(f => f !== changelogPath)
+    if (substantive.length && c.version === pins[c.id]) {
+      out.push(finding('ERROR', 'version-bump-required',
+        `Component '${c.id}' changed since ${tag} but its version is unchanged (still ${c.version}). ` +
+        `Bump its version + versions[] + CHANGELOG.`,
+        `Bump ${c.id}'s version in registry.json, append a versions[] entry, and run node harness/render.mjs --changelogs.`))
+    }
+  }
+  return out
+}
+
 // --- runner ------------------------------------------------------------------
 
 export function runDoctor({ root = DEFAULT_ROOT, manifestPath = DEFAULT_MANIFEST, registryPath = DEFAULT_REGISTRY } = {}) {
@@ -449,6 +510,7 @@ export function runDoctor({ root = DEFAULT_ROOT, manifestPath = DEFAULT_MANIFEST
     ...checkIndexSync(merged, root),
     ...checkChangelogSync(merged, root),
     ...checkReleaseConsistency(merged, root),
+    ...checkVersionBumpOnChange(merged, root),
   ]
   return { findings, manifest: merged }
 }

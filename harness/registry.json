@@ -1235,12 +1235,17 @@
       "tests": "harness/sandbox/confinement/confinement.test.mjs",
       "dependsOn": [],
       "owner": "harness",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "versions": [
         {
           "version": "0.1.0",
           "date": "2026-07-01",
           "change": "Initial version (seeded at P1-a)."
+        },
+        {
+          "version": "0.2.0",
+          "date": "2026-07-01",
+          "change": "Add dormant fail-closed decideStrict allowlist + Tier-1 harness.sb (live decide() unchanged)."
         }
       ]
     },
@@ -1313,12 +1318,17 @@
       "tests": "harness/sandbox/harness-lock/harness-lock.test.mjs",
       "dependsOn": [],
       "owner": "harness",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "versions": [
         {
           "version": "0.1.0",
           "date": "2026-07-01",
           "change": "Initial version."
+        },
+        {
+          "version": "0.2.0",
+          "date": "2026-07-01",
+          "change": "Add dormant decideBranchDiscipline + reconciler orphan-clear (not wired)."
         }
       ]
     }
