@@ -20,7 +20,7 @@
           "id": { "type": "string" },
           "kind": { "type": "string", "description": "Fine-grained descriptor (engine-agent, gate, store, ...)" },
           "type": { "enum": ["orchestrator", "runner", "service", "hook", "library"], "description": "The canonical component type = its folder under harness/ (orchestrators|runners|services|hooks|lib)." },
-          "state": { "enum": ["production", "staging", "sandbox", "planned", "quarantined", "retired"] },
+          "state": { "enum": ["production", "staging", "candidate", "sandbox", "planned", "quarantined", "retired"] },
           "path": { "type": "string", "description": "Current location on disk (relative to repo root). Pre-relocation paths are allowed; the manifest+registry, not the directory, define the boundary." },
           "entry": { "type": "string" },
           "role": { "type": "string", "description": "One line: what it does" },

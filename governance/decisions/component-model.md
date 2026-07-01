@@ -30,7 +30,9 @@ contracted**, the `doctor` flags it **RED**. (Dead/undeclared code cannot hide.)
 - **type**: `orchestrator | runner | service | hook | library` (= the folder).
 - **role** (derived from schema): `agent | command | query | store`.
 - **status**: `wired | in-formation`. Neither ⇒ **RED**.
-- **state** (promotion): `production | staging | sandbox | planned | quarantined | retired`.
+- **state** (promotion): `production | staging | candidate | sandbox | planned | quarantined | retired`.
+  Two of these are pre-admission (live under `harness/sandbox/`, not yet in the harness file):
+  **`sandbox` = a genuine experiment**; **`candidate` = built + proven, awaiting human admission**.
 - **frozen**: bool — the safety spine; protected by CODEOWNERS + doctor, **a property, not a folder**.
 
 ## Invariants (the doctor enforces when wired)

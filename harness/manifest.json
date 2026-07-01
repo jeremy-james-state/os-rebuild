@@ -28,6 +28,7 @@
   "states": [
     "production",
     "staging",
+    "candidate",
     "sandbox",
     "planned",
     "quarantined",

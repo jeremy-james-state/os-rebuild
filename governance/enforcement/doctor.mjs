@@ -90,18 +90,21 @@ export function checkComponents(manifest, root) {
   return out
 }
 
-// Self-admission guard: a component living under harness/sandbox/ must be state=sandbox.
-// A candidate cannot be declared production/staging/planned while it still sits in the sandbox
-// folder — admission (governance/rules/harness-admission.md) MOVES the code out of sandbox/ into
-// its type-folder. A sandbox-path row claiming a non-sandbox state is drift (self-admission).
+// Self-admission guard: a component living under harness/sandbox/ must be pre-admission —
+// state=candidate (built + proven, awaiting human admission) OR state=sandbox (genuine experiment).
+// Both are legitimate pre-admission states that live under the sandbox/ folder. A candidate cannot
+// be declared production/staging/planned/quarantined/retired while it still sits in the sandbox
+// folder — admission (governance/rules/harness-admission.md) MOVES the code out of sandbox/ into its
+// type-folder. A sandbox-path row claiming any admitted state is drift (self-admission).
+const PRE_ADMISSION_STATES = new Set(['candidate', 'sandbox'])
 export function checkSandboxContainment(manifest) {
   const out = []
   for (const c of manifest.components || []) {
     const p = (c.path || '').replace(/^\.\//, '')
-    if (p.startsWith('harness/sandbox/') && c.state !== 'sandbox') {
+    if (p.startsWith('harness/sandbox/') && !PRE_ADMISSION_STATES.has(c.state)) {
       out.push(finding('ERROR', 'sandbox-path-non-sandbox-state',
         `Component '${c.id}' lives under harness/sandbox/ but declares state='${c.state}'.`,
-        `A sandbox-path component must be state=sandbox. Admission moves it out of sandbox/ into its type-folder (governance/rules/harness-admission.md) — never self-admit by flipping state in place.`))
+        `A sandbox-path component must be state=candidate or state=sandbox (both pre-admission). Admission moves it out of sandbox/ into its type-folder (governance/rules/harness-admission.md) — never self-admit by flipping state in place.`))
     }
   }
   return out
@@ -131,7 +134,7 @@ export function checkUndeclared(manifest, root) {
 export function checkDependencies(manifest) {
   const out = []
   const byId = new Map((manifest.components || []).map(c => [c.id, c]))
-  const forbiddenForProduction = new Set(['sandbox', 'quarantined', 'retired', 'planned'])
+  const forbiddenForProduction = new Set(['candidate', 'sandbox', 'quarantined', 'retired', 'planned'])
   for (const c of manifest.components || []) {
     for (const depId of c.dependsOn || []) {
       const dep = byId.get(depId)
@@ -228,7 +231,7 @@ export function checkSequence(manifest, root) {
   if (!seq || !seq.steps) return out
   const compById = new Map((manifest.components || []).map(c => [c.id, c]))
   const stageIds = new Set(((manifest.chain && manifest.chain.stages) || []).map(s => s.id))
-  const unstable = new Set(['sandbox', 'quarantined', 'retired', 'planned'])
+  const unstable = new Set(['candidate', 'sandbox', 'quarantined', 'retired', 'planned'])
   let prev = 0
   for (const s of seq.steps) {
     if (s.order !== prev + 1) {

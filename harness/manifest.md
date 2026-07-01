@@ -40,7 +40,7 @@ The blueprint — the harness's canonical end-to-end shape: session -> idea -> u
 | harness-doctor | runner | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule  ⚠ new in this pass; not yet wired into pre-push |
 | router | orchestrator | orchestrator | `harness/orchestrators/router.mjs` | Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path)  ⚠ minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step |
 
-### sandbox (13)
+### candidate (13)
 
 | Component | Type | Kind | Path | Role |
 | --- | --- | --- | --- | --- |

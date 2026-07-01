@@ -9,6 +9,11 @@ This file is the "Registered" step. When a candidate is **admitted**, it is remo
 from here and declared in the harness file; when **withdrawn**, it is removed from here
 and deleted from `harness/sandbox/`.
 
+> **State reframe:** registered candidates now carry `state: candidate` in
+> `harness/registry.json` (was `sandbox`). `candidate` = built + proven, awaiting human
+> admission; `sandbox` is now reserved for genuine experiments. Both remain pre-admission and
+> live under `harness/sandbox/`.
+
 > **Divergence resolved (gov-2026-06-30-031):** the earlier sandbox exception — keeping
 > `record/signals.jsonl` tracked as a git→CI→Supabase transport (gov-029) — is **ended**.
 > `signals.jsonl` is now gitignored, re-aligned with main's "runtime streams gitignored → Data

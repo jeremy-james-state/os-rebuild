@@ -59,15 +59,17 @@ test('checkComponents: flags declared-but-absent and bad-state', () => {
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
-test('checkSandboxContainment: a sandbox-path row with non-sandbox state is ERROR (self-admission guard)', () => {
+test('checkSandboxContainment: a sandbox-path row with an admitted state is ERROR; candidate/sandbox are clean (self-admission guard)', () => {
   const manifest = {
     components: [
       { id: 'ok-sandbox', kind: 'tool', type: 'library', state: 'sandbox', path: 'harness/sandbox/foo/', role: 'r' },
+      { id: 'ok-candidate', kind: 'tool', type: 'library', state: 'candidate', path: 'harness/sandbox/qux/', role: 'r' },
       { id: 'self-admitted', kind: 'tool', type: 'library', state: 'production', path: 'harness/sandbox/bar/', role: 'r' },
       { id: 'promoted', kind: 'tool', type: 'library', state: 'production', path: 'harness/lib/baz/', role: 'r' },
     ],
   }
   const f = checkSandboxContainment(manifest)
+  // Only the self-admitted (production while still under sandbox/) is drift; candidate + sandbox are both allowed.
   assert.deepEqual(codes(f), ['sandbox-path-non-sandbox-state'])
   assert.equal(f[0].severity, 'ERROR')
   assert.ok(f[0].message.includes("'self-admitted'"))
