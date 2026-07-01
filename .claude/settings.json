@@ -1,5 +1,9 @@
 {
-  "$comment": "Tracked Claude Code session config. Wires the signal-loop CANDIDATE (harness/sandbox/) to fire on every prompt: session-feedback runs the orchestrator loop (extract -> classify -> estimate -> route -> outcome) and prints the trace back into the session, so you can watch a command pass through the nodes. It is the SOLE writer of record/signals.jsonl (sole-writer rule). FAIL-OPEN: it never blocks a turn. A wired candidate is still a candidate (governance/rules/harness-admission.md) - not admitted to the harness. Hooks load at session start, so the live trace begins next session. (signal-ledger remains a candidate for reference; it is NOT wired here, to keep one writer per stream.)",
+  "$comment": "Tracked Claude Code session config for os-rebuild. Two wirings make the signal loop VISIBLE: (1) statusLine renders the latest loop trace in the status bar (the surface the user reliably SEES every turn); (2) the UserPromptSubmit hook runs the orchestrator loop on each prompt (extract -> classify -> estimate -> route -> outcome) and records it, so the statusLine has fresh data — its stdout is added to the model's context (NOT shown to the user; that is by Claude Code design). Both are FAIL-OPEN and never block a turn. session-feedback is the SOLE writer of record/signals.jsonl. Wired candidates are still candidates (governance/rules/harness-admission.md), not admitted. Hooks/statusLine load at session start, so open THIS folder as the project to see them.",
+  "statusLine": {
+    "type": "command",
+    "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/session-feedback/statusline.mjs\""
+  },
   "hooks": {
     "UserPromptSubmit": [
       {

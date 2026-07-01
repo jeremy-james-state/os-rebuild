@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { extractPrompt, renderLine } from './index.mjs'
+import { renderStatus } from './statusline.mjs'
+import { append } from '../loop-store/index.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const HOOK = join(HERE, 'index.mjs')
@@ -50,4 +52,22 @@ test('an unmatched prompt still produces a visible, honest outcome (never silent
   const out = runHook('zzz lorem ipsum')
   assert.match(out, /🔁 OS loop/)
   assert.match(out, /outcome: unknown/)
+})
+
+test('statusLine renders the latest run — the surface the user reliably SEES', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'sl-'))
+  try {
+    assert.match(renderStatus(dir), /idle/)  // nothing yet
+    const t = 'trace-1'
+    append('signals', { summary: 'check the harness for drift', traceId: t }, { dir })
+    append('classified', { type: 'check', confidence: 'high', target: 'doctor', traceId: t }, { dir })
+    append('estimates', { score: 61, band: 'medium', traceId: t }, { dir })
+    append('runs', { status: 'completed', target: 'doctor', traceId: t }, { dir })
+    const line = renderStatus(dir)
+    assert.match(line, /check the harness for drift/)
+    assert.match(line, /check\(high\)/)
+    assert.match(line, /~61/)
+    assert.match(line, /doctor/)
+    assert.match(line, /completed/)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
 })
