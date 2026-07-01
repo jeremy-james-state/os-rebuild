@@ -45,6 +45,8 @@ blocked — fail-closed; reads of sibling projects are blocked too) and **harnes
 
 ## Where to look
 
-`harness/loop/LOOP.md` (technical map) · [`OS-CONTENTS.md`](OS-CONTENTS.md) (what ships) ·
+[`governance/checks/README.md`](../governance/checks/README.md) (the doctor and the other
+checks, in plain language) · `harness/loop/LOOP.md` (technical map) ·
+[`OS-CONTENTS.md`](OS-CONTENTS.md) (what ships) ·
 `governance/procedures/` (release · workbench · testflight · versioning) · every app carries
 its own plain-language README (`apps/`, `apps/_drafts/`).
