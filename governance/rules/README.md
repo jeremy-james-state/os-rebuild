@@ -8,3 +8,4 @@ Source material to promote from: `os-v1/` (principles.md, decisions/, rules-acti
 - [`doc-discipline.md`](doc-discipline.md) — classify before write; one authority, one home.
 - [`harness-admission.md`](harness-admission.md) — Located · Registered · Contracted · Green · Admitted; a candidate is not the harness until a human admits it.
 - [`ci-workflows.md`](ci-workflows.md) — CI workflows are governed controls; declared in `environment.json`, ledgered, owner-approved; undeclared = drift (fail-closed).
+- [`handoffs.md`](handoffs.md) — every handoff MUST be saved to `record/handoffs/handoff-<date>.md` + rendered to `docs/RESUME-HERE.md`; the `handoff` component is the deterministic guarantor (test + merge gate).

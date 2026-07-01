@@ -1284,6 +1284,25 @@
       ]
     },
     {
+      "id": "handoff",
+      "kind": "governance",
+      "type": "library",
+      "state": "candidate",
+      "path": "harness/sandbox/handoff/",
+      "role": "Deterministic handoff spine: guarantees session handoffs are saved to record/handoffs/ (+ renders docs/RESUME-HERE.md); new/check/list.",
+      "tests": "harness/sandbox/handoff/handoff.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Bring handoff into the harness — deterministic save to record/handoffs/ + contract + test."
+        }
+      ]
+    },
+    {
       "id": "investigator",
       "kind": "engine-agent",
       "type": "runner",

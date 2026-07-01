@@ -65,7 +65,7 @@
 | session-feedback | 0.1.0 | candidate | hook | `harness/sandbox/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |
 | session-start-hook | 0.1.0 | planned | hook | `harness/hooks/session-start-hook/` | SessionStart: validate workspace binding, fail-closed on wrong checkout, inject continuity packet |
 
-### library (12)
+### library (13)
 
 | Component | Version | State | Kind | Path | Role |
 | --- | --- | --- | --- | --- | --- |
@@ -74,6 +74,7 @@
 | clarify-gate | 0.1.0 | planned | gate | `harness/lib/clarify-gate/` | Pre-Orchestrator classifier: is the Clarifier worthwhile (fuzzy + grounded)? Routes run-clarifier / gather-info / self-state / ground-first |
 | classifier | 0.1.0 | candidate | gate | `harness/sandbox/classifier/` | Signal classifier: signal → {type,intent,confidence,target}; rules-based, deterministic, LLM-swappable behind the same contract |
 | estimator | 0.1.0 | candidate | gate | `harness/sandbox/estimator/` | Scores a work item so the orchestrator can prioritise — consults only, never dispatches |
+| handoff | 0.1.0 | candidate | governance | `harness/sandbox/handoff/` | Deterministic handoff spine: guarantees session handoffs are saved to record/handoffs/ (+ renders docs/RESUME-HERE.md); new/check/list. |
 | incident | 0.1.0 | candidate | governance | `harness/sandbox/incident/` | Deterministic spine of the incident log: STEPS + missingSteps/isComplete + new/check/list |
 | refinement | 0.1.0 | planned | experiment | `harness/lib/refinement/` | Overnight prototype/eval corpus (rubric v2, decomposer prototypes) |
 | route | 0.1.0 | planned | router | `harness/lib/route/` | Pure routing policy: tags -> tier ladder; verification never uses model; fail-safe defaults to script |
