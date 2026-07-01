@@ -12,6 +12,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, basename, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_ROOT = resolve(HERE, '..', '..')
@@ -282,6 +283,42 @@ export function checkArchitectureVersion(root) {
   return out
 }
 
+// Merge-conflict markers must never survive a merge into a tracked file — they signal an
+// unreconciled merge and would break the code/docs they sit in. Scan tracked files only
+// (git ls-files); fail-open to [] when git is unavailable (e.g. a non-git export). To avoid
+// false positives (a markdown `=======` divider is common), flag a file only when it contains
+// BOTH a `^<<<<<<< ` open AND a `^>>>>>>> ` close marker at line-start — the paired conflict
+// context. Binary/large files are skipped defensively.
+export function checkNoConflictMarkers(root) {
+  let tracked
+  try {
+    tracked = execFileSync('git', ['-C', root, 'ls-files', '-z'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] })
+      .split('\0').filter(Boolean)
+  } catch { return [] } // git unavailable / not a repo → fail-open
+
+  const OPEN = /^<<<<<<< /m
+  const CLOSE = /^>>>>>>> /m
+  const MAX_BYTES = 5 * 1024 * 1024 // skip files larger than 5MB
+  const out = []
+  for (const relPath of tracked.sort((a, b) => a.localeCompare(b))) {
+    const abs = join(root, relPath)
+    let text
+    try {
+      const st = statSync(abs)
+      if (!st.isFile() || st.size > MAX_BYTES) continue
+      const buf = readFileSync(abs)
+      if (buf.includes(0)) continue // NUL byte → treat as binary, skip
+      text = buf.toString('utf8')
+    } catch { continue } // unreadable / vanished → skip (fail-open per file)
+    if (OPEN.test(text) && CLOSE.test(text)) {
+      out.push(finding('ERROR', 'conflict-marker',
+        `File '${relPath}' contains unresolved merge-conflict markers (<<<<<<< … >>>>>>>).`,
+        'Resolve the merge conflict and remove the <<<<<<< / ======= / >>>>>>> marker lines before merging.'))
+    }
+  }
+  return out
+}
+
 export function runGovernanceCheck({ root = DEFAULT_ROOT } = {}) {
   const findings = [
     ...checkLedgerIntegrity(root),
@@ -290,6 +327,7 @@ export function runGovernanceCheck({ root = DEFAULT_ROOT } = {}) {
     ...checkWriteZones(root),
     ...checkDeclaredWorkflows(root),
     ...checkArchitectureVersion(root),
+    ...checkNoConflictMarkers(root),
   ]
   return { findings }
 }

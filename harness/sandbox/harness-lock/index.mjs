@@ -180,6 +180,80 @@ export function decide(payload = {}, deps = {}) {
   return { block: false, component: components[0], holder: me }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BRANCH-DISCIPLINE GUARD (dormant) — decideBranchDiscipline
+//
+// Part of the merge/concurrency failsafe (group D). EXPORTED and TESTED but NOT
+// wired into main(): the live hook still runs only decide() above. A human wires
+// this at the merge-failsafe flip (governance/candidates.md). Same dormant-addition
+// precedent as confinement's decideStrict — the live contract (and version) is
+// unchanged, so a bug here cannot brick the running session.
+//
+// Rule: an architecture write (a WRITE tool targeting harness/ or governance/) must
+// happen on a work/<id> branch, never directly on main. So:
+//   • WRITE targeting harness/ or governance/  AND  current branch is `main`  → BLOCK.
+//   • anything else                                                          → allow.
+//
+// Control semantics (asymmetric, deliberate):
+//   • fail-CLOSED on the explicit "on main + architecture write" condition (BLOCK).
+//   • fail-OPEN on any guard error — can't read the branch, bad payload, etc. → allow.
+//     `branch` defaults to reading the current git branch, failing open to '' when
+//     unavailable; it is injectable so tests need no git.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Read the current git branch; fail-open to '' when git/branch is unavailable. */
+export function currentBranch(root = REPO) {
+  try {
+    return execFileSync('git', ['-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).trim()
+  } catch { return '' } // fail-open: unreadable branch → allow (caller treats '' as not-main)
+}
+
+/**
+ * Does a tool call WRITE under an architecture-critical dir (harness/ or governance/)?
+ * Reuses writeTargets() (so reads/non-writes return no targets → false). writeTargets is
+ * harness-scoped, so governance/ paths are detected here from the same tool input, mirroring
+ * writeTargets' own extraction shape (direct file_path; mcp string args; Bash redirect/mutate).
+ */
+export function isArchitectureWrite(tool, input = {}) {
+  const hitsArch = (p) => {
+    if (typeof p !== 'string') return false
+    const s = p.replace(/^\.\//, '')
+    return /^(harness|governance)[\\/]/.test(s) || s.includes('/harness/') || s.includes('/governance/')
+  }
+  // Any harness/ target from the shared extractor already means an architecture write.
+  if (writeTargets(tool, input).some(hitsArch)) return true
+  // governance/ targets — same extraction shape as writeTargets, widened to governance/.
+  if (['Write', 'Edit', 'NotebookEdit'].includes(tool)) return hitsArch(input.file_path || '')
+  if (typeof tool === 'string' && tool.startsWith('mcp__')) {
+    return Object.values(input || {}).some((v) => typeof v === 'string' && hitsArch(v))
+  }
+  if (tool === 'Bash') {
+    const cmd = String(input.command || '')
+    if (/>>?\s*"?(?:\.\/)?governance\//.test(cmd)) return true
+    if (/\b(tee|cp|mv|touch|rm|mkdir|sed\s+-i)\b/.test(cmd) && /(?:\s|^)(?:\.\/)?governance\//.test(cmd)) return true
+  }
+  return false
+}
+
+/**
+ * Decide branch discipline on a PreToolUse payload. Returns { block, reason }.
+ * Fail-CLOSED only on: an architecture write while on `main`. Fail-OPEN otherwise
+ * (non-write, non-architecture target, off-main branch, unreadable branch, any error).
+ */
+export function decideBranchDiscipline(payload = {}, { root = REPO, branch } = {}) {
+  try {
+    const b = branch === undefined ? currentBranch(root) : String(branch || '')
+    if (b !== 'main') return { block: false } // off main (or unknown) → allow (fail-open)
+    const tool = payload.tool_name || ''
+    const input = payload.tool_input || {}
+    if (!isArchitectureWrite(tool, input)) return { block: false } // not an architecture write → allow
+    return {
+      block: true,
+      reason: `harness-lock(branch-discipline): architecture changes to harness/ or governance/ must be made on a work/<id> branch, not directly on 'main'. Create a work branch (e.g. \`git switch -c work/<id>\`) and retry there.`,
+    }
+  } catch { return { block: false } } // any guard error → allow (fail-open)
+}
+
 function main() {
   let buf = ''
   const done = (code) => process.exit(code)

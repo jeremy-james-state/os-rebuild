@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 
-import { runGovernanceCheck, checkDeclaredWorkflows, checkArchitectureVersion } from './governance-check.mjs'
+import { runGovernanceCheck, checkDeclaredWorkflows, checkArchitectureVersion, checkNoConflictMarkers } from './governance-check.mjs'
 
 function tmpRoot() { return mkdtempSync(join(tmpdir(), 'governance-check-')) }
 
@@ -112,6 +113,38 @@ test('runGovernanceCheck: dangling cross-reference is an ERROR', () => {
 test('runGovernanceCheck: the real repo has zero governance ERRORs', () => {
   const errors = runGovernanceCheck().findings.filter((f) => f.severity === 'ERROR')
   assert.deepEqual(errors, [], `expected zero governance errors, got: ${JSON.stringify(errors, null, 2)}`)
+})
+
+test('checkNoConflictMarkers: markers → ERROR; clean file & markdown ======= divider → none', () => {
+  const root = tmpRoot()
+  try {
+    execFileSync('git', ['-C', root, 'init', '-q'])
+    write(root, 'conflicted.mjs', [
+      'const a = 1',
+      '<<<<<<< HEAD',
+      'const b = 2',
+      '=======',
+      'const b = 3',
+      '>>>>>>> other',
+    ].join('\n') + '\n')
+    write(root, 'clean.mjs', 'const ok = true\n')
+    // a markdown horizontal-ish divider using ======= alone must NOT trip the check
+    write(root, 'doc.md', '# Title\n\nSection\n=======\n\nBody\n')
+    execFileSync('git', ['-C', root, 'add', '-A'])
+    const findings = checkNoConflictMarkers(root)
+    assert.equal(findings.length, 1)
+    assert.equal(findings[0].severity, 'ERROR')
+    assert.equal(findings[0].code, 'conflict-marker')
+    assert.match(findings[0].message, /conflicted\.mjs/)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkNoConflictMarkers: non-git dir → [] (fail-open)', () => {
+  const root = tmpRoot()
+  try {
+    write(root, 'conflicted.mjs', '<<<<<<< HEAD\nx\n=======\ny\n>>>>>>> other\n')
+    assert.deepEqual(checkNoConflictMarkers(root), []) // no git → nothing tracked → fail-open
+  } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
 test('checkDeclaredWorkflows: no workflows dir is a no-op', () => {

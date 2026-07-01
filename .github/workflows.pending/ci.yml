@@ -1,14 +1,20 @@
+# PENDING — activate at the merge-failsafe flip:
+#   git mv .github/workflows.pending/ci.yml .github/workflows/
+#   + declare in governance/environment.json
+#   + requires a workflow-scope token to push under .github/workflows/.
+# While it lives here (not under .github/workflows/) it is inert: GitHub Actions does
+# not run it, and governance-check's checkDeclaredWorkflows does not govern it.
 name: CI
 
-# The doctor runs at the merge: drift-check + tests must pass before main moves.
+# The merge gate: the four enforcement checks + all tests must pass before main moves.
 on:
   pull_request:
     branches: [main]
   push:
-    branches: ['**']
+    branches: [main]
 
 jobs:
-  doctor:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +25,9 @@ jobs:
         run: node governance/enforcement/doctor.mjs
       - name: Governance check (self-governance, fail-closed)
         run: node governance/enforcement/governance-check.mjs
-      - name: Structure check (WARN-only)
+      - name: Structure check
         run: node governance/enforcement/structure-check.mjs
+      - name: No ghost agent
+        run: node governance/enforcement/no-ghost-agent.mjs
       - name: Harness + governance tests
-        run: node --test 'harness/**/*.test.mjs' 'governance/**/*.test.mjs'
+        run: node --test $(find harness governance -name '*.test.mjs')

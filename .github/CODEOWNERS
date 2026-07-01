@@ -8,3 +8,13 @@
 
 # The locked boundary
 /docs/BOUNDARY.md  @jeremy-james-state
+
+# Architecture-critical manifests & enforcement — explicit owner review, always.
+# (Covered by /harness/ and /governance/ above; listed to make the failsafe intent
+#  legible and robust to any future re-scoping of the directory rules.)
+/harness/manifest.json          @jeremy-james-state
+/harness/registry.json          @jeremy-james-state
+/harness/releases/              @jeremy-james-state
+/governance/architecture.json   @jeremy-james-state
+/governance/enforcement/        @jeremy-james-state
+/governance/permissions.json    @jeremy-james-state

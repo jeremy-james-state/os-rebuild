@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { decide, componentOf, writeTargets, isLive, lockPath, readLock, acquire } from './index.mjs'
+import { decide, componentOf, writeTargets, isLive, lockPath, readLock, acquire, decideBranchDiscipline, isArchitectureWrite } from './index.mjs'
 
 function tmpRoot() {
   const root = mkdtempSync(join(tmpdir(), 'hlock-'))
@@ -129,4 +129,49 @@ test('corrupt lock file → allow (fail-open, re-acquire)', () => {
     const r = decide(writeToTarget('B'), { root, now: NOW, pidAlive: alive })
     assert.equal(r.block, false)
   } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+// ── decideBranchDiscipline (dormant) — architecture writes must be on a work branch ──
+const archWrite = (fp) => ({ tool_name: 'Write', tool_input: { file_path: fp } })
+
+test('isArchitectureWrite: harness/ & governance/ writes counted; other paths & reads not', () => {
+  assert.equal(isArchitectureWrite('Write', { file_path: 'harness/x.mjs' }), true)
+  assert.equal(isArchitectureWrite('Write', { file_path: 'governance/x.md' }), true)
+  assert.equal(isArchitectureWrite('Edit', { file_path: './governance/permissions.json' }), true)
+  assert.equal(isArchitectureWrite('Write', { file_path: 'docs/x.md' }), false)
+  assert.equal(isArchitectureWrite('Write', { file_path: 'record/x.jsonl' }), false)
+  assert.equal(isArchitectureWrite('Read', { file_path: 'harness/x.mjs' }), false) // read is not a write
+  assert.equal(isArchitectureWrite('Bash', { command: 'echo hi > governance/x' }), true)
+  assert.equal(isArchitectureWrite('Bash', { command: 'node --test harness/x.test.mjs' }), false) // read-only
+})
+
+test('decideBranchDiscipline: on main, write to harness/ → BLOCK (fail-closed)', () => {
+  const r = decideBranchDiscipline(archWrite('harness/sandbox/target/index.mjs'), { root: '/r', branch: 'main' })
+  assert.equal(r.block, true)
+  assert.match(r.reason, /work\/<id>/)
+  assert.match(r.reason, /not directly on 'main'/)
+})
+
+test('decideBranchDiscipline: on main, write to governance/ → BLOCK (fail-closed)', () => {
+  const r = decideBranchDiscipline(archWrite('governance/permissions.json'), { root: '/r', branch: 'main' })
+  assert.equal(r.block, true)
+})
+
+test('decideBranchDiscipline: on main, write elsewhere (docs/, record/) → allow', () => {
+  assert.equal(decideBranchDiscipline(archWrite('docs/BOUNDARY.md'), { root: '/r', branch: 'main' }).block, false)
+  assert.equal(decideBranchDiscipline(archWrite('record/notes.md'), { root: '/r', branch: 'main' }).block, false)
+})
+
+test('decideBranchDiscipline: on a work/foo branch → all allow', () => {
+  assert.equal(decideBranchDiscipline(archWrite('harness/sandbox/target/index.mjs'), { root: '/r', branch: 'work/foo' }).block, false)
+  assert.equal(decideBranchDiscipline(archWrite('governance/permissions.json'), { root: '/r', branch: 'work/foo' }).block, false)
+})
+
+test('decideBranchDiscipline: on main, a READ of harness/ → allow (reads never block)', () => {
+  const r = decideBranchDiscipline({ tool_name: 'Read', tool_input: { file_path: 'harness/x.mjs' } }, { root: '/r', branch: 'main' })
+  assert.equal(r.block, false)
+})
+
+test('decideBranchDiscipline: unreadable branch (injected \'\') → allow (fail-open)', () => {
+  assert.equal(decideBranchDiscipline(archWrite('harness/x.mjs'), { root: '/r', branch: '' }).block, false)
 })
