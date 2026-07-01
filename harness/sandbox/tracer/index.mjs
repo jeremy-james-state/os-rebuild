@@ -117,5 +117,3 @@ function main() {
   process.stdout.write(JSON.stringify({ trace: t.traceId, spans: [s1.name, s2.name], linked: s2.parentSpanId === s1.spanId }, null, 2) + '\n')
 }
 if (import.meta.url === `file://${process.argv[1]}`) main()
-
-// gate-proof: deliberate unversioned change (will be rejected, never merged)

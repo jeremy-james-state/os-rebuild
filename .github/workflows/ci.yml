@@ -1,9 +1,6 @@
-# PENDING — activate at the merge-failsafe flip:
-#   git mv .github/workflows.pending/ci.yml .github/workflows/
-#   + declare in governance/environment.json
-#   + requires a workflow-scope token to push under .github/workflows/.
-# While it lives here (not under .github/workflows/) it is inert: GitHub Actions does
-# not run it, and governance-check's checkDeclaredWorkflows does not govern it.
+# ACTIVE — the merge gate. Runs the four enforcement checks + all tests on every
+# PR + push to main; declared in governance/environment.json (ci-merge-gate) and
+# bound as the REQUIRED status check ('checks') on the main-branch-governance ruleset.
 name: CI
 
 # The merge gate: the four enforcement checks + all tests must pass before main moves.
@@ -18,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags — checkVersionBumpOnChange baselines against the harness-v* release tags; a shallow checkout has none → the check fail-opens → versioning NOT enforced
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
