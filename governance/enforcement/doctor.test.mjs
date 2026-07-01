@@ -2,12 +2,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   checkComponents, checkDependencies, checkSequence,
   checkChain, checkMdSync, runDoctor, checkSchemas, checkSandboxContainment,
   checkVersionChangelog, checkIndexSync, checkChangelogSync, checkReleaseConsistency,
+  checkVersionBumpOnChange,
 } from './doctor.mjs'
 import { render, renderIndex, renderChangelog } from '../../harness/render.mjs'
 import { resolve, dirname } from 'node:path'
@@ -117,6 +119,116 @@ test('checkReleaseConsistency: missing record + pin drift are ERROR; matching is
     assert.deepEqual(codes(checkReleaseConsistency(manifest, root)), ['release-pin-drift'])
     writeFileSync(join(root, 'harness/releases/0.9.json'), JSON.stringify({ pins: { x: '0.1.0', y: '0.2.0' } }))
     assert.deepEqual(checkReleaseConsistency(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+// --- checkVersionBumpOnChange: a real tmp git repo with a release tag ---------
+function gitRepoWithRelease() {
+  const root = mkdtempSync(join(tmpdir(), 'harness-vbump-'))
+  const g = (...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' })
+  g('init', '-q')
+  g('config', 'user.email', 'test@example.com')
+  g('config', 'user.name', 'test')
+  // A component dir + a release record pinning it at 0.1.0, then tag it.
+  mkdirSync(join(root, 'harness/comp'), { recursive: true })
+  mkdirSync(join(root, 'harness/releases'), { recursive: true })
+  writeFileSync(join(root, 'harness/comp/index.mjs'), 'export const v = 1\n')
+  writeFileSync(join(root, 'harness/releases/0.8.json'), JSON.stringify({ pins: { comp: '0.1.0' } }))
+  g('add', '-A')
+  g('commit', '-q', '-m', 'seed')
+  g('tag', 'harness-v0.8')
+  return { root, g }
+}
+
+test('checkVersionBumpOnChange: changed component without a version bump is ERROR', () => {
+  const { root, g } = gitRepoWithRelease()
+  try {
+    // Change the component file, then commit — version still equals its 0.8 pin.
+    writeFileSync(join(root, 'harness/comp/index.mjs'), 'export const v = 2\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'change comp')
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    const f = checkVersionBumpOnChange(manifest, root)
+    assert.deepEqual(codes(f), ['version-bump-required'])
+    assert.equal(f[0].severity, 'ERROR')
+    assert.ok(f[0].message.includes('harness-v0.8'))
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: same change WITH a bumped version is clean', () => {
+  const { root, g } = gitRepoWithRelease()
+  try {
+    writeFileSync(join(root, 'harness/comp/index.mjs'), 'export const v = 2\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'change comp')
+    // version now != pin → the bump was recorded, no drift.
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.2.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: an unchanged component (no diff since tag) is clean', () => {
+  const { root } = gitRepoWithRelease()
+  try {
+    // No commits since the tag → no diff → no finding even though version == pin.
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: only CHANGELOG.md changed (generated) is not drift', () => {
+  const { root, g } = gitRepoWithRelease()
+  try {
+    writeFileSync(join(root, 'harness/comp/CHANGELOG.md'), '# generated\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'regen changelog')
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: a component absent from the release pins is skipped', () => {
+  const { root, g } = gitRepoWithRelease()
+  try {
+    // A brand-new component dir not present at the 0.8 baseline.
+    mkdirSync(join(root, 'harness/newcomp'), { recursive: true })
+    writeFileSync(join(root, 'harness/newcomp/index.mjs'), 'export const n = 1\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'add newcomp')
+    const manifest = { components: [{ id: 'newcomp', path: 'harness/newcomp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: fail-open — no git repo returns []', () => {
+  const root = mkdtempSync(join(tmpdir(), 'harness-nogit-'))
+  try {
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: fail-open — git repo with no release tag returns []', () => {
+  const root = mkdtempSync(join(tmpdir(), 'harness-notag-'))
+  try {
+    const g = (...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' })
+    g('init', '-q'); g('config', 'user.email', 't@e.com'); g('config', 'user.name', 't')
+    mkdirSync(join(root, 'harness/comp'), { recursive: true })
+    writeFileSync(join(root, 'harness/comp/index.mjs'), '//\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'seed') // committed but never tagged harness-v*
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('checkVersionBumpOnChange: fail-open — tag present but release record missing returns []', () => {
+  const root = mkdtempSync(join(tmpdir(), 'harness-norec-'))
+  try {
+    const g = (...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' })
+    g('init', '-q'); g('config', 'user.email', 't@e.com'); g('config', 'user.name', 't')
+    mkdirSync(join(root, 'harness/comp'), { recursive: true })
+    writeFileSync(join(root, 'harness/comp/index.mjs'), '//\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'seed'); g('tag', 'harness-v0.8') // no releases/0.8.json
+    writeFileSync(join(root, 'harness/comp/index.mjs'), '// changed\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'change')
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [])
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
