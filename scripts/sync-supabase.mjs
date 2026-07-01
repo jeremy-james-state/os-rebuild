@@ -22,6 +22,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { read, STREAMS } from '../harness/sandbox/loop-store/index.mjs'
 
 const URL = process.env.OS_SUPABASE_URL || 'https://pirwnoingtczdamdirqw.supabase.co'
@@ -31,7 +32,9 @@ const URL = process.env.OS_SUPABASE_URL || 'https://pirwnoingtczdamdirqw.supabas
 function resolveKey() {
   if (process.env.OS_SUPABASE_KEY) return process.env.OS_SUPABASE_KEY.trim()
   try {
-    const f = fileURLToPath(new URL('../.supabase-key', import.meta.url))
+    // NB: `const URL` above shadows the global URL constructor, so compute the path via
+    // node:path (not `new URL`) to avoid a "URL is not a constructor" throw.
+    const f = join(dirname(fileURLToPath(import.meta.url)), '..', '.supabase-key')
     const k = readFileSync(f, 'utf8').trim()
     if (k) return k
   } catch { /* no key file — fine, we skip below */ }
