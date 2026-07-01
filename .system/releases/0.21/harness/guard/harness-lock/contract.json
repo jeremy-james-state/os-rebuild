@@ -1,0 +1,30 @@
+{
+  "name": "harness-lock",
+  "type": "hook",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "command",
+  "summary": "A per-component single-writer WRITE-LOCK enforced as a PreToolUse handler (separate from confinement/). A WRITE (Write/Edit/NotebookEdit/mcp/Bash) to a harness component acquires or refreshes the component's lock under the acting session's identity; a WRITE that would collide with a LIVE lock held by a DIFFERENT holder is blocked. Two agents cannot edit the same component concurrently; git still reconciles at merge, but the collision is prevented locally.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. Built + tested; live PreToolUse wiring in .claude/settings.json is PENDING human wire-in. NOT admitted."
+  },
+  "input": { "description": "A Claude Code PreToolUse payload on stdin.", "schema": { "tool_name": "string", "tool_input": "object", "cwd": "string", "session_id": "string" } },
+  "output": { "description": "Block (exit 2 + stderr reason) or allow (exit 0).", "schema": { "exitCode": "2=blocked | 0=allowed" } },
+  "reads": ["(stdin) PreToolUse payload", "state/harness-locks/<component>.lock"],
+  "writes": ["state/harness-locks/<component>.lock"],
+  "triggers": "event",
+  "execution": "inline",
+  "exit": "Exits 2 (blocked) when a WRITE targets a component held by a LIVE foreign lock; 0 otherwise (acquiring/refreshing the lock). Fail-open on any guard error.",
+  "provenance": false,
+  "config": ["HARNESS_ROOT", "HARNESS_LOCK_HOLDER"],
+  "invariants": [
+    "A control: fail CLOSED on a real conflict (a live foreign lock → exit 2), fail OPEN on any guard error (bad payload, fs error, unknown state → exit 0).",
+    "Holder identity is stable across a session + its subagents (session_id → HARNESS_LOCK_HOLDER → git branch) so a single actor never self-blocks.",
+    "A lock is LIVE iff its ts is within TTL (2h) AND its pid is alive; a stale or dead-pid lock is free and re-acquirable.",
+    "Non-harness writes and all reads are allowed; an unresolvable component allows (fail-open).",
+    "The lock dir state/harness-locks/ is runtime state — gitignored, never committed; orphan locks are swept by the reconciler."
+  ]
+}

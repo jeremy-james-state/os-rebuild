@@ -1,0 +1,29 @@
+{
+  "name": "confinement",
+  "type": "hook",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "command",
+  "summary": "A PreToolUse fence that keeps a session scoped to os-rebuild: it blocks any tool call (Bash/Read/Write/Edit/Grep/Glob) that reads, writes, or cd's into a SIBLING project under ~/Projects (e.g. /Projects/harness, /Projects/OS), while leaving system paths and in-repo work untouched. Modeled on the harness Core's write-fence; the interpreter-level preventive tier.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. Wired as PreToolUse in .claude/settings.json (a wired candidate is still a candidate). NOT admitted."
+  },
+  "input": { "description": "A Claude Code PreToolUse payload on stdin.", "schema": { "tool_name": "string", "tool_input": "object", "cwd": "string" } },
+  "output": { "description": "Block (exit 2 + stderr reason) or allow (exit 0).", "schema": { "exitCode": "2=blocked | 0=allowed" } },
+  "reads": ["(stdin) PreToolUse payload"],
+  "writes": [],
+  "triggers": "event",
+  "execution": "inline",
+  "exit": "Exits 2 (blocked) when a target resolves to a sibling project; 0 otherwise. Fail-open on any error.",
+  "provenance": false,
+  "config": ["HARNESS_ROOT"],
+  "invariants": [
+    "A path inside ~/Projects but outside os-rebuild is a sibling project → blocked.",
+    "System paths (node, git, /usr, ~/.claude) and in-repo paths are allowed.",
+    "Fail-open: an unparseable/empty payload or any error never blocks (never wedges a session).",
+    "Interpreter-level (preventive); the bypass-proof guarantee is a kernel sandbox (the Core's claude-safe)."
+  ]
+}
