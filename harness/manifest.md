@@ -40,13 +40,14 @@ The blueprint — the harness's canonical end-to-end shape: session -> idea -> u
 | harness-doctor | runner | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule  ⚠ new in this pass; not yet wired into pre-push |
 | router | orchestrator | orchestrator | `harness/orchestrators/router.mjs` | Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path)  ⚠ minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step |
 
-### sandbox (12)
+### sandbox (13)
 
 | Component | Type | Kind | Path | Role |
 | --- | --- | --- | --- | --- |
 | classifier | library | gate | `harness/sandbox/classifier/` | Signal classifier: signal → {type,intent,confidence,target}; rules-based, deterministic, LLM-swappable behind the same contract |
 | confinement | hook | gate | `harness/sandbox/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
 | estimator | library | gate | `harness/sandbox/estimator/` | Scores a work item so the orchestrator can prioritise — consults only, never dispatches |
+| harness-lock | hook | gate | `harness/sandbox/harness-lock/` | PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error. |
 | incident | library | governance | `harness/sandbox/incident/` | Deterministic spine of the incident log: STEPS + missingSteps/isComplete + new/check/list |
 | investigator | runner | engine-agent | `harness/sandbox/investigator/` | The first agent: an LLM-driven runner that investigates and fills an incident — evidence-based root cause + the five steps |
 | loop-store | service | store | `harness/sandbox/loop-store/` | The data layer: append-only JSONL truth per stream → readable state/os.db; sole-writer per stream |

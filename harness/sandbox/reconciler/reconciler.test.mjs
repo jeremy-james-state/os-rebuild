@@ -1,10 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { append, read } from '../loop-store/index.mjs'
-import { sweep, gitDrift } from './index.mjs'
+import { sweep, gitDrift, clearOrphanLocks } from './index.mjs'
 
 function tmp() { return mkdtempSync(join(tmpdir(), 'recon-')) }
 const fixedNow = () => '2026-07-01T00:00:00.000Z'
@@ -56,7 +56,7 @@ test('clean data layer → nothing raised', () => {
   const dir = tmp()
   try {
     const r = sweep(opt(dir))
-    assert.deepEqual(r, { checked: 0, limbo: [], drift: [], raised: [] })
+    assert.deepEqual(r, { checked: 0, limbo: [], drift: [], raised: [], clearedLocks: [] })
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
@@ -201,5 +201,77 @@ test('sweep: a throwing injected git cannot crash the sweep (fail-open backstop)
     assert.doesNotThrow(() => { r = sweep({ ...opt(dir), root, git: boom }) })
     assert.deepEqual(r.drift, [])
     assert.equal(r.raised.length, 0)
+  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(root, { recursive: true, force: true }) }
+})
+
+// ── clearOrphanLocks (unit — tmp lock dir; inject now/pidAlive; NEVER the live state/) ──
+
+const LOCK_NOW = Date.parse('2026-07-01T12:00:00.000Z')
+// Build a tmp root with a state/harness-locks/ dir and write a lock file for `component`.
+function tmpLockRoot(locks = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'recon-locks-'))
+  mkdirSync(join(root, 'state', 'harness-locks'), { recursive: true })
+  for (const [component, lock] of Object.entries(locks)) {
+    writeFileSync(join(root, 'state', 'harness-locks', `${component}.lock`), lock === null ? '{ bad' : JSON.stringify(lock))
+  }
+  return root
+}
+const lp = (root, c) => join(root, 'state', 'harness-locks', `${c}.lock`)
+
+test('clearOrphanLocks: removes a stale lock, keeps a live one', () => {
+  const root = tmpLockRoot({
+    live: { holder: 'A', pid: 1, ts: new Date(LOCK_NOW).toISOString() },
+    stale: { holder: 'B', pid: 1, ts: new Date(LOCK_NOW - 3 * 3600e3).toISOString() }, // 3h > 2h TTL
+  })
+  try {
+    const cleared = clearOrphanLocks({ root, now: LOCK_NOW, pidAlive: () => true })
+    assert.deepEqual(cleared, ['stale'])
+    assert.equal(existsSync(lp(root, 'stale')), false)
+    assert.equal(existsSync(lp(root, 'live')), true)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('clearOrphanLocks: removes a dead-pid lock (fresh ts, pid gone)', () => {
+  const root = tmpLockRoot({ dead: { holder: 'A', pid: 1, ts: new Date(LOCK_NOW).toISOString() } })
+  try {
+    const cleared = clearOrphanLocks({ root, now: LOCK_NOW, pidAlive: () => false })
+    assert.deepEqual(cleared, ['dead'])
+    assert.equal(existsSync(lp(root, 'dead')), false)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('clearOrphanLocks: an unparseable lock file is treated as orphan and removed', () => {
+  const root = tmpLockRoot({ junk: null })
+  try {
+    const cleared = clearOrphanLocks({ root, now: LOCK_NOW, pidAlive: () => true })
+    assert.deepEqual(cleared, ['junk'])
+    assert.equal(existsSync(lp(root, 'junk')), false)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('clearOrphanLocks: no lock dir → [] (fail-open, no throw)', () => {
+  const root = mkdtempSync(join(tmpdir(), 'recon-nolocks-'))
+  try {
+    let cleared
+    assert.doesNotThrow(() => { cleared = clearOrphanLocks({ root, now: LOCK_NOW }) })
+    assert.deepEqual(cleared, [])
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
+test('sweep: orphan-clear is INERT in tmp mode when root is not provided', () => {
+  const dir = tmp()
+  try {
+    const r = sweep(opt(dir)) // dir set, no root → must not touch the live state/harness-locks/
+    assert.deepEqual(r.clearedLocks, [])
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('sweep: clears a stale lock through clearedLocks when root is provided', () => {
+  const dir = tmp()
+  const root = tmpLockRoot({ stale: { holder: 'A', pid: 1, ts: new Date(LOCK_NOW - 3 * 3600e3).toISOString() } })
+  try {
+    const r = sweep({ ...opt(dir), root, nowMs: LOCK_NOW, pidAlive: () => true })
+    assert.deepEqual(r.clearedLocks, ['stale'])
+    assert.equal(existsSync(lp(root, 'stale')), false)
   } finally { rmSync(dir, { recursive: true, force: true }); rmSync(root, { recursive: true, force: true }) }
 })

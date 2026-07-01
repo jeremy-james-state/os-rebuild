@@ -23,6 +23,8 @@ state/*.db-*
 state/*.jsonl
 # Local data-lock snapshots + backups (scripts/data-lock.mjs) — machine-local, never committed
 state/data-lock/
+# Per-component write-lock files (harness/sandbox/harness-lock) — machine-local runtime state, never committed
+state/harness-locks/
 
 # Append-only runtime streams (record/) — durable home is the Data Layer.
 # Bulky/regenerable streams (runs, signals, observations) are gitignored, BUT the

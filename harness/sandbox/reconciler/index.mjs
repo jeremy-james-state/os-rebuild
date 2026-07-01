@@ -24,7 +24,7 @@
  * observability, so it fails OPEN in every direction: a git error, a missing upstream, or a
  * missing file degrades to "no drift found" — it NEVER throws or crashes the sweep.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, unlinkSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
@@ -128,6 +128,43 @@ export function gitDrift({ root = REPO_ROOT, git = realGit(root) } = {}) {
   return out
 }
 
+/** The write-lock TTL (mirrors harness-lock). A lock older than this is orphaned. */
+const LOCK_TTL_MS = 2 * 60 * 60 * 1000 // 2h
+
+/** Default pid-liveness probe (signal 0); EPERM still means alive. Unknown → false. */
+function defaultPidAlive(pid) {
+  if (!pid || typeof pid !== 'number') return false
+  try { process.kill(pid, 0); return true } catch (e) { return e && e.code === 'EPERM' }
+}
+
+/**
+ * Clear ORPHAN write-locks: scan state/harness-locks/*.lock and remove any whose lock is NOT live
+ * (dead pid or ts past TTL, plus unparseable/empty files). A live lock (fresh ts + alive pid) is
+ * KEPT. Injectable `now`/`pidAlive` for tests; fail-open by construction — a fs/parse error on one
+ * file is swallowed and the sweep continues. Returns [component] for each lock removed.
+ */
+export function clearOrphanLocks({ root = REPO_ROOT, now = Date.now(), pidAlive = defaultPidAlive } = {}) {
+  const cleared = []
+  const dir = join(root, 'state', 'harness-locks')
+  let entries = []
+  try { entries = readdirSync(dir).filter((f) => f.endsWith('.lock')) } catch { return cleared }
+  for (const f of entries) {
+    const component = f.slice(0, -'.lock'.length)
+    const p = join(dir, f)
+    let lock = null
+    try { lock = JSON.parse(readFileSync(p, 'utf8')) } catch { lock = null } // unparseable/empty → orphan
+    let live = false
+    if (lock && lock.ts) {
+      const t = Date.parse(lock.ts)
+      live = !Number.isNaN(t) && (now - t <= LOCK_TTL_MS) && pidAlive(lock.pid)
+    }
+    if (!live) {
+      try { unlinkSync(p); cleared.push(component) } catch { /* fail-open: leave it for next sweep */ }
+    }
+  }
+  return cleared
+}
+
 function readDroppedSignalIds(path) {
   if (!path || !existsSync(path)) return []
   let text
@@ -164,6 +201,7 @@ export function sweep(opts = {}) {
   const limbo = []
   const drift = []
   const raised = []
+  const clearedLocks = []
   const raise = (signalId, cause, reason, summary, bucket = limbo) => {
     const trace = newTrace({ id: idGen(), now })
     const s = span(trace, 'reconcile', { id: idGen(), now })
@@ -200,7 +238,21 @@ export function sweep(opts = {}) {
       }
     }
   } catch { /* fail-open — drift detection must never crash the backstop */ }
-  return { checked: signals.length, limbo, drift, raised }
+
+  // (4) orphan write-locks — remove any state/harness-locks/*.lock that is no longer live (dead
+  //     pid or ts past TTL). Fully wrapped so a fs error cannot crash the sweep. Isolation mirrors
+  //     the drift step: in test/tmp mode (opts.dir set) this is INERT unless the caller opts in via
+  //     opts.root, so a tmp-dir sweep never touches the live state/harness-locks/. A real CLI sweep
+  //     (no opts.dir) defaults to REPO_ROOT.
+  try {
+    const locksEnabled = opts.root != null || !dir
+    if (locksEnabled) {
+      const root = opts.root || REPO_ROOT
+      for (const c of clearOrphanLocks({ root, now: opts.nowMs, pidAlive: opts.pidAlive })) clearedLocks.push(c)
+    }
+  } catch { /* fail-open — orphan-clear must never crash the backstop */ }
+
+  return { checked: signals.length, limbo, drift, raised, clearedLocks }
 }
 
 // ── thin CLI ──────────────────────────────────────────────────────────────────

@@ -57,6 +57,7 @@
     "confinement": "0.1.0",
     "incident": "0.1.0",
     "investigator": "0.1.0",
-    "signal-ledger": "0.1.0"
+    "signal-ledger": "0.1.0",
+    "harness-lock": "0.1.0"
   }
 }

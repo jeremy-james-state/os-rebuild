@@ -1301,6 +1301,26 @@
           "change": "Initial version (seeded at P1-a)."
         }
       ]
+    },
+    {
+      "id": "harness-lock",
+      "kind": "gate",
+      "type": "hook",
+      "state": "sandbox",
+      "path": "harness/sandbox/harness-lock/",
+      "role": "PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error.",
+      "trigger": "PreToolUse",
+      "tests": "harness/sandbox/harness-lock/harness-lock.test.mjs",
+      "dependsOn": [],
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version."
+        }
+      ]
     }
   ]
 }
