@@ -11,6 +11,10 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard/confinement/index.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard/harness-lock/index.mjs\""
           }
         ]
       }

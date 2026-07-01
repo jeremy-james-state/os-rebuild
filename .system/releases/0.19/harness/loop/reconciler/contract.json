@@ -1,0 +1,27 @@
+{
+  "name": "reconciler",
+  "type": "runner",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "agent",
+  "summary": "The nothing-fails-silently backstop. Sweeps the data layer for any signal with no terminal run (limbo) and raises an incident. Out-of-process guarantee: routing may be best-effort, the reconciler must be reliable. Idempotent — never double-raises.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": { "description": "(none) — sweeps the data layer.", "schema": {} },
+  "output": { "description": "Sweep result.", "schema": { "checked": "integer", "limbo": "string[] (signal ids)", "raised": "string[] (incident ids)" } },
+  "reads": ["record/signals.jsonl", "record/runs.jsonl", "record/incidents.jsonl"],
+  "writes": ["record/incidents.jsonl"],
+  "triggers": "loop",
+  "execution": "background",
+  "exit": "Every limbo signal is raised as an incident, or there are none.",
+  "provenance": true,
+  "invariants": [
+    "A signal with no terminal run is raised as an open incident — silence is impossible.",
+    "Idempotent: a signal already covered by a run or already raised is not re-raised.",
+    "Reliable/out-of-process by design: it is the guarantee, not best-effort."
+  ]
+}

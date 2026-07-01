@@ -1,0 +1,37 @@
+{
+  "name": "loop-store",
+  "type": "service",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "store",
+  "summary": "The signal loop's data layer. Append-only JSONL truth (one sole-writer stream per store: signals, runs, classified, estimates, reconcile, incidents) projected into a single readable SQLite table `events` (+ per-stream views) in state/os.db. Truth-first, gapless index, nothing fails silently. Generalised from signal-ledger.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": {
+    "description": "A stream name + an event row (already trace/four-tuple stamped by the caller).",
+    "schema": { "stream": "one of signals|runs|classified|estimates|reconcile|incidents", "row": "object" }
+  },
+  "output": {
+    "description": "Append result + projection stats.",
+    "schema": { "ok": "boolean", "n": "integer (gapless per-stream)", "id": "string (<stream>:<n>)", "dropped": "boolean (on failure)" }
+  },
+  "reads": ["record/signals.jsonl", "record/runs.jsonl", "record/classified.jsonl", "record/estimates.jsonl", "record/reconcile.jsonl", "record/incidents.jsonl"],
+  "writes": ["record/signals.jsonl", "record/runs.jsonl", "record/classified.jsonl", "record/estimates.jsonl", "record/reconcile.jsonl", "record/incidents.jsonl", "state/os.db", "state/loop-store-drops.jsonl"],
+  "triggers": "request",
+  "execution": "inline",
+  "provenance": true,
+  "config": ["OS_RECORD_DIR", "OS_DB", "OS_DROPS"],
+  "invariants": [
+    "record/<stream>.jsonl is the source of truth (append-only; supersede, never edit).",
+    "state/os.db is rebuildable from the JSONL and is gitignored.",
+    "Truth-first write ordering: append the durable record before the projection.",
+    "Nothing fails silently: a failed append is recorded to state/loop-store-drops.jsonl.",
+    "The per-stream index n is gapless 1..N — a gap is a detectable completeness failure.",
+    "One stream = one sole writer (the data-layer sole-writer rule).",
+    "governance-ledger is NOT a loop stream — it keeps its own shape and human gate."
+  ]
+}
