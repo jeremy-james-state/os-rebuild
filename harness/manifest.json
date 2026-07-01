@@ -1,377 +1,377 @@
 {
-  "manifestVersion": "2.0",
-  "harnessVersion": "0.13",
-  "updated": "2026-06-30",
-  "description": "Source of truth for the OS harness RAILS: states, kinds, executionContexts, boundary, sequence (the blueprint), chain, environment, governance. Component ROWS live in harness/registry.json; the doctor (governance/enforcement/doctor.mjs) merges the two and checks reality against them. harness/manifest.md is the generated human-readable twin (run harness/render.mjs).",
-  "versioning": {
-    "spaces": {
-      "component": {
-        "field": "registry.components[].version",
-        "scheme": "semver",
-        "rule": "Contract-keyed: MAJOR = contract break (input/output/exit); MINOR = contract-compatible behavior added; PATCH = internal fix. Bumped per component; a line is added to the co-located CHANGELOG.md (generated from registry.components[].versions[])."
-      },
-      "harnessRelease": {
-        "field": "harnessVersion",
-        "scheme": "generation.release",
-        "rule": "DELIBERATE — cut only when the accumulated state is worth naming. generation bumps on a rails/boundary shift; release increments per cut. Pins the component set in harness/releases/<generation.release>.json; the git tag is the capture. NOT a rollup of component bumps.",
-        "log": "harness/CHANGELOG.md",
-        "releases": "harness/releases/"
-      },
-      "osArchitecture": {
-        "field": "governance/architecture.json#architectureVersion",
-        "scheme": "generation.release",
-        "rule": "OUTERMOST + rarest — bumped only on a tier / boundary (docs/BOUNDARY.md) / data-schema-shape change; recorded via a governance-ledger entry. Governed by governance-check, NEVER by the doctor."
-      }
-    },
-    "migratedFrom": "0.8.0 (single 3-part harnessVersion) — see harness/CHANGELOG.md."
+ "manifestVersion": "2.0",
+ "harnessVersion": "0.14",
+ "updated": "2026-06-30",
+ "description": "Source of truth for the OS harness RAILS: states, kinds, executionContexts, boundary, sequence (the blueprint), chain, environment, governance. Component ROWS live in harness/registry.json; the doctor (governance/enforcement/doctor.mjs) merges the two and checks reality against them. harness/manifest.md is the generated human-readable twin (run harness/render.mjs).",
+ "versioning": {
+  "spaces": {
+   "component": {
+    "field": "registry.components[].version",
+    "scheme": "semver",
+    "rule": "Contract-keyed: MAJOR = contract break (input/output/exit); MINOR = contract-compatible behavior added; PATCH = internal fix. Bumped per component; a line is added to the co-located CHANGELOG.md (generated from registry.components[].versions[])."
+   },
+   "harnessRelease": {
+    "field": "harnessVersion",
+    "scheme": "generation.release",
+    "rule": "DELIBERATE \u2014 cut only when the accumulated state is worth naming. generation bumps on a rails/boundary shift; release increments per cut. Pins the component set in harness/releases/<generation.release>.json; the git tag is the capture. NOT a rollup of component bumps.",
+    "log": "harness/CHANGELOG.md",
+    "releases": "harness/releases/"
+   },
+   "osArchitecture": {
+    "field": "governance/architecture.json#architectureVersion",
+    "scheme": "generation.release",
+    "rule": "OUTERMOST + rarest \u2014 bumped only on a tier / boundary (docs/BOUNDARY.md) / data-schema-shape change; recorded via a governance-ledger entry. Governed by governance-check, NEVER by the doctor."
+   }
   },
-  "states": [
-    "production",
-    "staging",
-    "candidate",
-    "sandbox",
-    "planned",
-    "quarantined",
-    "retired"
-  ],
-  "kinds": [
-    "engine-agent",
-    "router",
-    "gate",
-    "runtime",
-    "store",
-    "governance",
-    "hook",
-    "host-adapter",
-    "config",
-    "environment",
-    "chain-stage",
-    "observability",
-    "tool",
-    "experiment"
-  ],
-  "executionContexts": [
-    {
-      "id": "local",
-      "root": "/Users/jeremyjames/Projects/OS",
-      "canonical": true,
-      "host": "macOS / Claude Code + Codex desktop",
-      "identity": "git-remote:jeremy-james-state/os",
-      "notes": "Original authoritative checkout. Tracker server + Overseer loop + launchd jobs run here."
-    },
-    {
-      "id": "cloud",
-      "root": "/home/user/OS",
-      "canonical": true,
-      "host": "Claude Code on the web (ephemeral container)",
-      "identity": "git-remote:jeremy-james-state/os",
-      "notes": "Co-canonical per decision 2026-06-30. Laws must key off repo identity, not the absolute path. Local-path hooks (Law 5/6) do not currently fire here — see governance.gaps."
-    }
-  ],
-  "boundary": {
-    "model": "directory+manifest, one branch",
-    "productionDir": "harness/ (folders are TYPES: orchestrators/ runners/ services/ hooks/ lib/)",
-    "sandboxDir": "none — promotion state (production|staging|sandbox|planned|quarantined|retired) is a manifest field, not a folder",
-    "note": "Components live by type, never by maturity. The doctor enforces that production never depends on sandbox/quarantined/planned, using the state field rather than a directory."
+  "migratedFrom": "0.8.0 (single 3-part harnessVersion) \u2014 see harness/CHANGELOG.md."
+ },
+ "states": [
+  "production",
+  "staging",
+  "candidate",
+  "sandbox",
+  "planned",
+  "quarantined",
+  "retired"
+ ],
+ "kinds": [
+  "engine-agent",
+  "router",
+  "gate",
+  "runtime",
+  "store",
+  "governance",
+  "hook",
+  "host-adapter",
+  "config",
+  "environment",
+  "chain-stage",
+  "observability",
+  "tool",
+  "experiment"
+ ],
+ "executionContexts": [
+  {
+   "id": "local",
+   "root": "/Users/jeremyjames/Projects/OS",
+   "canonical": true,
+   "host": "macOS / Claude Code + Codex desktop",
+   "identity": "git-remote:jeremy-james-state/os",
+   "notes": "Original authoritative checkout. Tracker server + Overseer loop + launchd jobs run here."
   },
-  "chain": {
-    "stages": [
-      {
-        "id": "idea",
-        "status": "present",
-        "surface": "tracker capture / +task (capture-hook)",
-        "owner": "tracker",
-        "contract": "captured unit, no filing"
-      },
-      {
-        "id": "pre-frame",
-        "status": "present",
-        "surface": "STATUS pre-frame pipeline",
-        "owner": "ov",
-        "contract": "decisions/decision-preframe-lifecycle-2026-06-22.md"
-      },
-      {
-        "id": "frame",
-        "status": "present",
-        "surface": "specs/frame-*.md",
-        "owner": "framer/ov",
-        "contract": "specs/template-frame-2026-06-22.md"
-      },
-      {
-        "id": "scope",
-        "status": "present",
-        "surface": "specs/scope-*.md",
-        "owner": "scoper/ov",
-        "contract": "specs/template-scope-2026-06-22.md"
-      },
-      {
-        "id": "plan",
-        "status": "present",
-        "surface": "specs/plan-*.md",
-        "owner": "planner/ov",
-        "contract": "specs/template-plan-2026-06-22.md + rubric-plan-quality"
-      },
-      {
-        "id": "build",
-        "status": "present",
-        "surface": "builder",
-        "owner": "builder/orch",
-        "contract": "builder/builder.mjs"
-      },
-      {
-        "id": "test",
-        "status": "present",
-        "surface": "tester",
-        "owner": "tester/ov",
-        "contract": "specs/rubric-testing-gate-2026-06-22.md"
-      },
-      {
-        "id": "deploy",
-        "status": "partial",
-        "surface": "deployer (staging)",
-        "owner": "deployer/ov",
-        "contract": "MISSING formal Deploy stage contract; only checklist-auto-mode-deployment-readiness exists"
-      },
-      {
-        "id": "monitor",
-        "status": "missing",
-        "surface": "none",
-        "owner": "unassigned",
-        "contract": "MISSING — no Monitor stage, template, or post-Done observation loop"
-      }
-    ]
-  },
-  "sequence": {
-    "description": "The blueprint — the harness's canonical end-to-end shape: session -> idea -> understand -> shape -> execute -> assure -> ship -> observe. Each step maps to a declared component and/or chain stage. This is the harness's testable shape (the 'blueprint'), distinct from the 'chain' (the build-pipeline stages it wraps); the doctor checks that every step resolves and that no production step depends on a sandbox component.",
-    "steps": [
-      {
-        "order": 1,
-        "id": "session-start",
-        "phase": "intake",
-        "component": "session-start-hook",
-        "produces": "bound session + injected continuity",
-        "note": "Must key off repo-identity so it binds in both local and cloud."
-      },
-      {
-        "order": 2,
-        "id": "capture",
-        "phase": "intake",
-        "stage": "idea",
-        "component": "capture-hook",
-        "produces": "captured unit in the tracker"
-      },
-      {
-        "order": 3,
-        "id": "signal-extract",
-        "phase": "understand",
-        "component": "tagger",
-        "produces": "routing signal / tags",
-        "note": "Today the tagger runs per-step feeding the Orchestrator (step 8); declared here as the intended upstream signal step."
-      },
-      {
-        "order": 4,
-        "id": "classify",
-        "phase": "understand",
-        "component": "clarify-gate",
-        "produces": "clarifier-worthwhile decision"
-      },
-      {
-        "order": 5,
-        "id": "frame",
-        "phase": "understand",
-        "component": "clarifier",
-        "stage": "frame",
-        "produces": "grounded End State"
-      },
-      {
-        "order": 6,
-        "id": "scope",
-        "phase": "shape",
-        "component": "scoper",
-        "stage": "scope",
-        "produces": "bounded, viable scope"
-      },
-      {
-        "order": 7,
-        "id": "plan",
-        "phase": "shape",
-        "component": "planner",
-        "stage": "plan",
-        "produces": "atomic, ordered plan"
-      },
-      {
-        "order": 8,
-        "id": "route",
-        "phase": "execute",
-        "component": "orchestrator",
-        "produces": "per-step tier routing",
-        "note": "Consumes the signal from step 3."
-      },
-      {
-        "order": 9,
-        "id": "build",
-        "phase": "execute",
-        "component": "builder",
-        "stage": "build",
-        "produces": "built artifacts in an isolated target"
-      },
-      {
-        "order": 10,
-        "id": "assure",
-        "phase": "assure",
-        "component": "tester",
-        "stage": "test",
-        "produces": "testing-gate verdict (>=8/10)"
-      },
-      {
-        "order": 11,
-        "id": "ship",
-        "phase": "ship",
-        "component": "deployer",
-        "stage": "deploy",
-        "produces": "deployment + verify + rollback",
-        "note": "deployer is state=staging; ship step is not yet production-ready."
-      },
-      {
-        "order": 12,
-        "id": "observe",
-        "phase": "observe",
-        "stage": "monitor",
-        "produces": "(MISSING) post-deploy monitoring + feedback into new units"
-      }
-    ]
-  },
-  "environment": {
-    "claudeCode": {
-      "settingsTracked": false,
-      "note": ".claude/settings.local.json (the file wiring SessionStart + PreToolUse hooks) is NOT in the repo. Only away-gate-settings.snippet.json is tracked. claude-global-settings.json is a sample, not active config.",
-      "hooks": [
-        {
-          "type": "SessionStart",
-          "wires": "session-start-hook",
-          "tracked": false
-        },
-        {
-          "type": "PreToolUse",
-          "wires": "away-gate",
-          "tracked": false
-        },
-        {
-          "type": "UserPromptSubmit",
-          "wires": "capture-hook",
-          "tracked": "local-tracker/.claude/settings.json only"
-        }
-      ]
-    },
-    "mcpServers": [
-      {
-        "id": "github",
-        "declaredInRepo": false
-      },
-      {
-        "id": "supabase",
-        "declaredInRepo": false
-      },
-      {
-        "id": "google-drive",
-        "declaredInRepo": false
-      },
-      {
-        "id": "granola",
-        "declaredInRepo": false
-      }
-    ],
-    "skills": {
-      "declaredInRepo": false,
-      "note": "Skills active in a session (deep-research, code-review, etc.) are host/account-level and undeclared."
-    },
-    "plugins": {
-      "declaredInRepo": false,
-      "note": "No plugins dir or manifest in repo."
-    },
-    "gaps": [
-      "No .mcp.json -> MCP servers ungoverned",
-      "No tracked settings.json -> hook wiring (the laws' backbone) lives outside the repo",
-      "No skills/plugins manifest -> session capability set is invisible and non-reproducible"
-    ]
-  },
-  "governance": {
-    "model": "Three layers: Principles (advisory) -> Laws (programmatic, fail-closed) -> GitHub (platform).",
-    "laws": [
-      {
-        "id": 1,
-        "name": "Session Registry",
-        "enforced": true
-      },
-      {
-        "id": 2,
-        "name": "Auto Mode Escape",
-        "enforced": "staging — away-gate not wired by default"
-      },
-      {
-        "id": 3,
-        "name": "Template Conformance",
-        "enforced": true
-      },
-      {
-        "id": 4,
-        "name": "Status Truth",
-        "enforced": true
-      },
-      {
-        "id": 5,
-        "name": "Session Start Live-Path",
-        "enforced": "needs repo-identity generalization (both-first-class)"
-      },
-      {
-        "id": 6,
-        "name": "Chain State Attestation",
-        "enforced": true
-      },
-      {
-        "id": 7,
-        "name": "Post-Handoff Caution",
-        "enforced": true
-      },
-      {
-        "id": 8,
-        "name": "Write Branch Audit",
-        "enforced": true
-      },
-      {
-        "id": 9,
-        "name": "Duplicate Session Claim",
-        "enforced": true
-      },
-      {
-        "id": 10,
-        "name": "GitHub Branch Protection",
-        "enforced": false
-      },
-      {
-        "id": 11,
-        "name": "Unified Violation Audit",
-        "enforced": "partial"
-      }
-    ],
-    "github": {
-      "codeowners": ".github/CODEOWNERS (exists)",
-      "branchProtection": "NOT configured — drafted in specs/config-github-branch-protection-2026-06-23.md",
-      "statusChecks": "none (.github/workflows/ empty)",
-      "note": "CODEOWNERS is inert until branch protection is configured on GitHub."
-    },
-    "buildRules": [
-      "A component enters the production harness only via the promotion contract (frame->...->test + human approval).",
-      "Production never depends on sandbox or quarantined components.",
-      "Every harness change is a manifest change; an undeclared wired surface is a drift error.",
-      "The environment (settings/hooks/plugins/skills/MCP/contexts) is pinned in-repo and checked.",
-      "Master is the single source of truth; branches are transient change vehicles merged via PR + protection."
-    ],
-    "gaps": [
-      "core.hooksPath not configured -> local laws may not fire on fresh clone / cloud",
-      "GitHub branch protection not configured -> no platform-level stop ('lost control' risk remains)",
-      "No promote/quarantine CLI -> promotion is manual STATUS editing",
-      "No unified violation audit (Law 11)"
-    ]
+  {
+   "id": "cloud",
+   "root": "/home/user/OS",
+   "canonical": true,
+   "host": "Claude Code on the web (ephemeral container)",
+   "identity": "git-remote:jeremy-james-state/os",
+   "notes": "Co-canonical per decision 2026-06-30. Laws must key off repo identity, not the absolute path. Local-path hooks (Law 5/6) do not currently fire here \u2014 see governance.gaps."
   }
+ ],
+ "boundary": {
+  "model": "directory+manifest, one branch",
+  "productionDir": "harness/ (folders are TYPES: orchestrators/ runners/ services/ hooks/ lib/)",
+  "sandboxDir": "none \u2014 promotion state (production|staging|sandbox|planned|quarantined|retired) is a manifest field, not a folder",
+  "note": "Components live by type, never by maturity. The doctor enforces that production never depends on sandbox/quarantined/planned, using the state field rather than a directory."
+ },
+ "chain": {
+  "stages": [
+   {
+    "id": "idea",
+    "status": "present",
+    "surface": "tracker capture / +task (capture-hook)",
+    "owner": "tracker",
+    "contract": "captured unit, no filing"
+   },
+   {
+    "id": "pre-frame",
+    "status": "present",
+    "surface": "STATUS pre-frame pipeline",
+    "owner": "ov",
+    "contract": "decisions/decision-preframe-lifecycle-2026-06-22.md"
+   },
+   {
+    "id": "frame",
+    "status": "present",
+    "surface": "specs/frame-*.md",
+    "owner": "framer/ov",
+    "contract": "specs/template-frame-2026-06-22.md"
+   },
+   {
+    "id": "scope",
+    "status": "present",
+    "surface": "specs/scope-*.md",
+    "owner": "scoper/ov",
+    "contract": "specs/template-scope-2026-06-22.md"
+   },
+   {
+    "id": "plan",
+    "status": "present",
+    "surface": "specs/plan-*.md",
+    "owner": "planner/ov",
+    "contract": "specs/template-plan-2026-06-22.md + rubric-plan-quality"
+   },
+   {
+    "id": "build",
+    "status": "present",
+    "surface": "builder",
+    "owner": "builder/orch",
+    "contract": "builder/builder.mjs"
+   },
+   {
+    "id": "test",
+    "status": "present",
+    "surface": "tester",
+    "owner": "tester/ov",
+    "contract": "specs/rubric-testing-gate-2026-06-22.md"
+   },
+   {
+    "id": "deploy",
+    "status": "partial",
+    "surface": "deployer (staging)",
+    "owner": "deployer/ov",
+    "contract": "MISSING formal Deploy stage contract; only checklist-auto-mode-deployment-readiness exists"
+   },
+   {
+    "id": "monitor",
+    "status": "missing",
+    "surface": "none",
+    "owner": "unassigned",
+    "contract": "MISSING \u2014 no Monitor stage, template, or post-Done observation loop"
+   }
+  ]
+ },
+ "sequence": {
+  "description": "The blueprint \u2014 the harness's canonical end-to-end shape: session -> idea -> understand -> shape -> execute -> assure -> ship -> observe. Each step maps to a declared component and/or chain stage. This is the harness's testable shape (the 'blueprint'), distinct from the 'chain' (the build-pipeline stages it wraps); the doctor checks that every step resolves and that no production step depends on a sandbox component.",
+  "steps": [
+   {
+    "order": 1,
+    "id": "session-start",
+    "phase": "intake",
+    "component": "session-start-hook",
+    "produces": "bound session + injected continuity",
+    "note": "Must key off repo-identity so it binds in both local and cloud."
+   },
+   {
+    "order": 2,
+    "id": "capture",
+    "phase": "intake",
+    "stage": "idea",
+    "component": "capture-hook",
+    "produces": "captured unit in the tracker"
+   },
+   {
+    "order": 3,
+    "id": "signal-extract",
+    "phase": "understand",
+    "component": "tagger",
+    "produces": "routing signal / tags",
+    "note": "Today the tagger runs per-step feeding the Orchestrator (step 8); declared here as the intended upstream signal step."
+   },
+   {
+    "order": 4,
+    "id": "classify",
+    "phase": "understand",
+    "component": "clarify-gate",
+    "produces": "clarifier-worthwhile decision"
+   },
+   {
+    "order": 5,
+    "id": "frame",
+    "phase": "understand",
+    "component": "clarifier",
+    "stage": "frame",
+    "produces": "grounded End State"
+   },
+   {
+    "order": 6,
+    "id": "scope",
+    "phase": "shape",
+    "component": "scoper",
+    "stage": "scope",
+    "produces": "bounded, viable scope"
+   },
+   {
+    "order": 7,
+    "id": "plan",
+    "phase": "shape",
+    "component": "planner",
+    "stage": "plan",
+    "produces": "atomic, ordered plan"
+   },
+   {
+    "order": 8,
+    "id": "route",
+    "phase": "execute",
+    "component": "orchestrator",
+    "produces": "per-step tier routing",
+    "note": "Consumes the signal from step 3."
+   },
+   {
+    "order": 9,
+    "id": "build",
+    "phase": "execute",
+    "component": "builder",
+    "stage": "build",
+    "produces": "built artifacts in an isolated target"
+   },
+   {
+    "order": 10,
+    "id": "assure",
+    "phase": "assure",
+    "component": "tester",
+    "stage": "test",
+    "produces": "testing-gate verdict (>=8/10)"
+   },
+   {
+    "order": 11,
+    "id": "ship",
+    "phase": "ship",
+    "component": "deployer",
+    "stage": "deploy",
+    "produces": "deployment + verify + rollback",
+    "note": "deployer is state=staging; ship step is not yet production-ready."
+   },
+   {
+    "order": 12,
+    "id": "observe",
+    "phase": "observe",
+    "stage": "monitor",
+    "produces": "(MISSING) post-deploy monitoring + feedback into new units"
+   }
+  ]
+ },
+ "environment": {
+  "claudeCode": {
+   "settingsTracked": false,
+   "note": ".claude/settings.local.json (the file wiring SessionStart + PreToolUse hooks) is NOT in the repo. Only away-gate-settings.snippet.json is tracked. claude-global-settings.json is a sample, not active config.",
+   "hooks": [
+    {
+     "type": "SessionStart",
+     "wires": "session-start-hook",
+     "tracked": false
+    },
+    {
+     "type": "PreToolUse",
+     "wires": "away-gate",
+     "tracked": false
+    },
+    {
+     "type": "UserPromptSubmit",
+     "wires": "capture-hook",
+     "tracked": "local-tracker/.claude/settings.json only"
+    }
+   ]
+  },
+  "mcpServers": [
+   {
+    "id": "github",
+    "declaredInRepo": false
+   },
+   {
+    "id": "supabase",
+    "declaredInRepo": false
+   },
+   {
+    "id": "google-drive",
+    "declaredInRepo": false
+   },
+   {
+    "id": "granola",
+    "declaredInRepo": false
+   }
+  ],
+  "skills": {
+   "declaredInRepo": false,
+   "note": "Skills active in a session (deep-research, code-review, etc.) are host/account-level and undeclared."
+  },
+  "plugins": {
+   "declaredInRepo": false,
+   "note": "No plugins dir or manifest in repo."
+  },
+  "gaps": [
+   "No .mcp.json -> MCP servers ungoverned",
+   "No tracked settings.json -> hook wiring (the laws' backbone) lives outside the repo",
+   "No skills/plugins manifest -> session capability set is invisible and non-reproducible"
+  ]
+ },
+ "governance": {
+  "model": "Three layers: Principles (advisory) -> Laws (programmatic, fail-closed) -> GitHub (platform).",
+  "laws": [
+   {
+    "id": 1,
+    "name": "Session Registry",
+    "enforced": true
+   },
+   {
+    "id": 2,
+    "name": "Auto Mode Escape",
+    "enforced": "staging \u2014 away-gate not wired by default"
+   },
+   {
+    "id": 3,
+    "name": "Template Conformance",
+    "enforced": true
+   },
+   {
+    "id": 4,
+    "name": "Status Truth",
+    "enforced": true
+   },
+   {
+    "id": 5,
+    "name": "Session Start Live-Path",
+    "enforced": "needs repo-identity generalization (both-first-class)"
+   },
+   {
+    "id": 6,
+    "name": "Chain State Attestation",
+    "enforced": true
+   },
+   {
+    "id": 7,
+    "name": "Post-Handoff Caution",
+    "enforced": true
+   },
+   {
+    "id": 8,
+    "name": "Write Branch Audit",
+    "enforced": true
+   },
+   {
+    "id": 9,
+    "name": "Duplicate Session Claim",
+    "enforced": true
+   },
+   {
+    "id": 10,
+    "name": "GitHub Branch Protection",
+    "enforced": false
+   },
+   {
+    "id": 11,
+    "name": "Unified Violation Audit",
+    "enforced": "partial"
+   }
+  ],
+  "github": {
+   "codeowners": ".github/CODEOWNERS (exists)",
+   "branchProtection": "NOT configured \u2014 drafted in specs/config-github-branch-protection-2026-06-23.md",
+   "statusChecks": "none (.github/workflows/ empty)",
+   "note": "CODEOWNERS is inert until branch protection is configured on GitHub."
+  },
+  "buildRules": [
+   "A component enters the production harness only via the promotion contract (frame->...->test + human approval).",
+   "Production never depends on sandbox or quarantined components.",
+   "Every harness change is a manifest change; an undeclared wired surface is a drift error.",
+   "The environment (settings/hooks/plugins/skills/MCP/contexts) is pinned in-repo and checked.",
+   "Master is the single source of truth; branches are transient change vehicles merged via PR + protection."
+  ],
+  "gaps": [
+   "core.hooksPath not configured -> local laws may not fire on fresh clone / cloud",
+   "GitHub branch protection not configured -> no platform-level stop ('lost control' risk remains)",
+   "No promote/quarantine CLI -> promotion is manual STATUS editing",
+   "No unified violation audit (Law 11)"
+  ]
+ }
 }

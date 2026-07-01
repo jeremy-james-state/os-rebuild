@@ -1,0 +1,27 @@
+{
+  "name": "reshape-rig",
+  "type": "library",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "test-rig",
+  "summary": "Migration test rig for the os-reshape execution plan (docs/superpowers/specs/2026-07-01-os-reshape-execution-plan.md): golden-master capture/compare (F5), the deterministic eval catalogue (F/C/G/O), fault-injection rigs (G2-G6), the sealed-boot self-containment matrix (S1-S5, RED until P2), concurrency rigs (X1-X3, RED until P3), and the scoped grep-gate. RED-first by design: tests tagged [P1-target]/[P2-target]/[P3-target] are EXPECTED to fail until that phase lands.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": { "description": "(none) — a test rig; drives the loop + checks via their CLIs.", "schema": {} },
+  "output": { "description": "golden-master.json + eval verdicts + grep-gate report.", "schema": {} },
+  "reads": ["harness/", "governance/", ".claude/settings.json"],
+  "writes": ["harness/sandbox/reshape-rig/golden-master.json (capture --write only); all test writes go to mkdtemp copies or OS_RECORD_DIR-redirected temp dirs"],
+  "triggers": "CI (node --test) + the reshape phase gates",
+  "execution": "test",
+  "exit": "Every eval in the §D2 catalogue has an executable, deterministic pass/fail.",
+  "provenance": true,
+  "invariants": [
+    "Never mutates the live repo: fault injection happens only in mkdtemp repo copies; loop runs redirect OS_RECORD_DIR/OS_DB/OS_DROPS.",
+    "Golden-master comparison masks only volatility (uuids, timestamps, signal numbers, versions, temp paths) — never semantic content.",
+    "A [P<n>-target] test failing before phase n is the expected RED; the same test failing after phase n is a regression."
+  ]
+}

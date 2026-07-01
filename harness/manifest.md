@@ -3,7 +3,7 @@
 > Generated from `harness/manifest.json` by `harness/render.mjs`.
 > Do not edit by hand — edit the JSON and run `node harness/render.mjs --write`.
 
-**Harness version:** 0.13 · **Manifest format:** 2.0 · **Updated:** 2026-06-30
+**Harness version:** 0.14 · **Manifest format:** 2.0 · **Updated:** 2026-06-30
 
 ## Boundary
 
@@ -40,7 +40,7 @@ The blueprint — the harness's canonical end-to-end shape: session -> idea -> u
 | harness-doctor | runner | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule  ⚠ new in this pass; not yet wired into pre-push |
 | router | orchestrator | orchestrator | `harness/orchestrators/router.mjs` | Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path)  ⚠ minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step |
 
-### candidate (14)
+### candidate (15)
 
 | Component | Type | Kind | Path | Role |
 | --- | --- | --- | --- | --- |
@@ -55,6 +55,7 @@ The blueprint — the harness's canonical end-to-end shape: session -> idea -> u
 | orchestrator | orchestrator | router | `harness/sandbox/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
 | pipeline | orchestrator | runtime | `harness/sandbox/pipeline/` | Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence |
 | reconciler | service | observability | `harness/sandbox/reconciler/` | Sweeps the data layer for any signal with no terminal run (limbo) → raises an incident; the nothing-fails-silently backstop |
+| reshape-rig | library | gate | `harness/sandbox/reshape-rig/` | Migration test rig for the os-reshape plan: golden-master capture/compare (F5), the §D2 eval battery, fault-injection rigs, the sealed-boot S-matrix (RED until P2), concurrency rigs (RED until P3), scoped grep-gate |
 | session-feedback | hook | hook | `harness/sandbox/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |
 | signal-ledger | library | store | `harness/sandbox/signal-ledger/` | Captures every real input as a four-tuple-stamped signal appended to the gitignored record/signals.jsonl; filters system-injected turns |
 | tracer | library | observability | `harness/sandbox/tracer/` | Cross-cutting trace context: one traceId per signal, one spanId per hop (linked), plus the four-tuple |
