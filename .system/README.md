@@ -7,7 +7,8 @@ are `harness · apps · skills · governance · record · docs`.
 |---|---|
 | `releases/` | version pins (`<v>.json`) and, from P2, sealed runtime snapshots (`<v>/` + `current`) |
 | `sync/` | observability sync + data-lock tooling (was `scripts/`) |
-| `bin/` | deleted items (soft-delete, restorable, purgeable) + from P2 the publish/boot CLIs |
+| `bin/` | the runtime CLIs: `os-publish.mjs` (seal/verify/boot-check) + `os-boot.mjs` (the stable launcher) |
+| `trash/` | deleted items (soft-delete with metadata, restorable, purgeable) |
 | `archive/` | retired-on-purpose things kept for the record (never auto-purged) |
 | `state/` | reserved for the file-backed channel pointer (P3); the projections DB stays at root `state/` for now (relocation deferred) |
 

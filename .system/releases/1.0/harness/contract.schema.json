@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://os.harness/contract.schema.json",
+  "title": "OS Harness Component Contract",
+  "description": "The co-located contract a component conforms to (governance/decisions/component-model.md): input/output/exit + reads/writes + triggers + config. `reads`/`writes` are the write-zone declaration the write hooks (Gate #2, governance/decisions/enforcement-points.md) enforce at write time. One contract.json per non-planned component; validated against this schema by the doctor.",
+  "type": "object",
+  "required": ["name", "type", "input", "output", "reads", "writes", "triggers"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string" },
+    "type": {
+      "enum": ["orchestrator", "runner", "service", "hook", "library"],
+      "description": "The canonical component type = its folder under harness/."
+    },
+    "role": { "type": "string", "description": "Derived role: agent | command | query | store." },
+    "status": { "type": "string" },
+    "state": { "enum": ["production", "staging", "sandbox", "planned", "quarantined", "retired"] },
+    "lifecycle": { "type": "string", "description": "Promotion lifecycle position (e.g. candidate)." },
+    "definition": { "type": "string", "description": "Pointer to the governance-side definition (e.g. an agent's law)." },
+    "summary": { "type": "string" },
+    "admission": { "type": "object", "additionalProperties": true },
+    "input": { "type": "object", "additionalProperties": true },
+    "output": { "type": "object", "additionalProperties": true },
+    "reads": { "type": "array", "items": { "type": "string" } },
+    "writes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The tables/paths this component is the SOLE writer of — the declaration Gate #2 enforces."
+    },
+    "triggers": { "type": "string" },
+    "execution": { "type": "string" },
+    "config": { "type": "array", "items": { "type": "string" } },
+    "exit": { "type": "string" },
+    "provenance": { "type": "boolean" },
+    "provenanceMapping": { "type": "object", "additionalProperties": true },
+    "flow": { "type": "string" },
+    "invariants": { "type": "array", "items": { "type": "string" } }
+  }
+}
