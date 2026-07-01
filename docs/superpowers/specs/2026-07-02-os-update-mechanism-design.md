@@ -1,6 +1,7 @@
 # OS update mechanism — immutable current, staged ship, explicit apply
 
-> **Status:** DESIGN, approved-for-build pattern (RED-first evals before code, per
+> **Status:** DESIGN — **DEFERRED, awaiting Jeremy's review (2026-07-02). DO NOT BUILD until
+> explicitly approved.** Build pattern when approved: RED-first evals before code, per
 > [workbench.md](../../governance/procedures/workbench.md)). 2026-07-02.
 > Builds on: sealed releases ([release.md](../../governance/procedures/release.md)),
 > channels ([testflight.md](../../governance/procedures/testflight.md)), `os-publish`.
