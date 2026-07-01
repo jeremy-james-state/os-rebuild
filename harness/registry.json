@@ -894,12 +894,17 @@
       "flags": [
         "new in this pass; not yet wired into pre-push"
       ],
-      "version": "0.1.0",
+      "version": "0.2.0",
       "versions": [
         {
           "version": "0.1.0",
           "date": "2026-07-01",
           "change": "Initial version (seeded at P1-a)."
+        },
+        {
+          "version": "0.2.0",
+          "date": "2026-07-01",
+          "change": "checkVersionBumpOnChange now diffs the working tree (not HEAD) so it fires at pre-commit verification; also reflects the sandbox→candidate guard change."
         }
       ]
     },

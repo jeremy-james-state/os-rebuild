@@ -156,6 +156,22 @@ test('checkVersionBumpOnChange: changed component without a version bump is ERRO
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
+test('checkVersionBumpOnChange: an UNCOMMITTED change without a version bump is ERROR (fires pre-commit)', () => {
+  // Regression: the old code diffed `<tag>..HEAD`, so a working-tree edit that was
+  // not yet committed produced NO diff and a false green. Branch verification runs
+  // pre-commit, so the check MUST see the working tree. Modify the component file
+  // without committing and assert the drift is now caught.
+  const { root } = gitRepoWithRelease()
+  try {
+    writeFileSync(join(root, 'harness/comp/index.mjs'), 'export const v = 2\n') // NO git add / commit
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    const f = checkVersionBumpOnChange(manifest, root)
+    assert.deepEqual(codes(f), ['version-bump-required'])
+    assert.equal(f[0].severity, 'ERROR')
+    assert.ok(f[0].message.includes('harness-v0.8'))
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
 test('checkVersionBumpOnChange: same change WITH a bumped version is clean', () => {
   const { root, g } = gitRepoWithRelease()
   try {

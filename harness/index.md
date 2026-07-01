@@ -26,7 +26,7 @@
 | deployer | 0.1.0 | planned | engine-agent | `harness/runners/deployer/` | Deploy gate + sign-off + verify + auto-rollback; auto only for preview/staging/non-client/low-impact |
 | executor | 0.1.0 | planned | engine-agent | `harness/runners/executor/` | Executes one atomic step: mechanical -> template codegen, novel -> model; confines writes to worktree |
 | explainer | 0.1.0 | planned | experiment | `harness/runners/explainer/` | Explains a target file as a Frame; grounded, never invents |
-| harness-doctor | 0.1.0 | staging | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule |
+| harness-doctor | 0.2.0 | staging | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule |
 | interface-build | 0.1.0 | retired | experiment | `interface-build/` | Legacy work-tracker UI design-system build |
 | investigator | 0.1.0 | candidate | engine-agent | `harness/sandbox/investigator/` | The first agent: an LLM-driven runner that investigates and fills an incident — evidence-based root cause + the five steps |
 | nightly | 0.1.0 | planned | experiment | `harness/runners/nightly/` | Retrospective optimizer: combs prior-day agent_runs for inefficiencies; proposes, never auto-applies |
