@@ -34,3 +34,7 @@ record/*.jsonl
 !record/governance-ledger.jsonl
 record/*.db
 record/*.db-*
+
+# Local Supabase sync (never commit the key; log is machine-local)
+.supabase-key
+state/*.log
