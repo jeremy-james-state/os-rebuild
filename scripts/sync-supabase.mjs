@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * sync-supabase.mjs — push the loop's data layer to the hosted projection (osr_events)
- * that the Vercel dashboard reads.
+ * sync-supabase.mjs — push the loop's data layer to the version-stamped hosted projection
+ * (osr_loop_events) that the Vercel dashboard reads. This supersedes the older osr_events
+ * table: osr_loop_events is a superset that additionally stamps harness_version /
+ * component_version onto every row.
  *
- *   record/<stream>.jsonl  (truth, git)  ──►  Supabase public.osr_events  ──►  Vercel dashboard
+ *   record/<stream>.jsonl  (truth, git)  ──►  Supabase public.osr_loop_events  ──►  Vercel dashboard
  *
- * Reads every loop stream via loop-store and UPSERTs into osr_events (on id). The dashboard
- * reads osr_events with the public (anon) key under RLS (select-only); writes need a key that
+ * Reads every loop stream via loop-store and UPSERTs into osr_loop_events (on id). The dashboard
+ * reads osr_loop_events with the public (anon) key under RLS (select-only); writes need a key that
  * can insert, so this script uses a SERVICE key from the environment — never committed.
  *
  *   OS_SUPABASE_URL   default: https://pirwnoingtczdamdirqw.supabase.co
@@ -31,6 +33,7 @@ function toRow(r) {
     trace_id: r.traceId ?? null, span_id: r.spanId ?? null, parent_span_id: r.parentSpanId ?? null,
     session: r.session ?? null, run: r.run ?? null,
     call: typeof r.call === 'number' ? r.call : null, branch: r.branch ?? null,
+    harness_version: r.harnessVersion ?? null, component_version: r.componentVersion ?? null,
     payload: r,
   }
 }
@@ -41,7 +44,7 @@ async function main() {
   for (const s of STREAMS) for (const r of read(s).records) rows.push(toRow(r))
   if (!rows.length) { console.log('nothing to sync (no records yet).'); return }
 
-  const res = await fetch(`${URL}/rest/v1/osr_events`, {
+  const res = await fetch(`${URL}/rest/v1/osr_loop_events`, {
     method: 'POST',
     headers: {
       apikey: KEY, Authorization: `Bearer ${KEY}`,
@@ -51,6 +54,6 @@ async function main() {
     body: JSON.stringify(rows),
   })
   if (!res.ok) { console.error(`sync failed: HTTP ${res.status} ${await res.text()}`); process.exit(1) }
-  console.log(`synced ${rows.length} events → ${URL}/rest/v1/osr_events`)
+  console.log(`synced ${rows.length} events → ${URL}/rest/v1/osr_loop_events`)
 }
 main().catch((e) => { console.error('sync error:', e.message); process.exit(1) })

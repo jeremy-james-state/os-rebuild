@@ -91,7 +91,7 @@
   </table>
 
   <footer>
-    Live from Supabase <span class="mono">osr_events</span> (a hosted projection; truth lives in
+    Live from Supabase <span class="mono">osr_loop_events</span> (a hosted projection; truth lives in
     <span class="mono">record/*.jsonl</span> in git). Auto-refreshes every 5s ·
     <a href="https://github.com/jeremy-james-state/os-rebuild" target="_blank">jeremy-james-state/os-rebuild</a>
   </footer>
@@ -110,13 +110,31 @@ const NODE_DEFS = [
 ];
 
 async function fetchEvents(){
-  const url = SUPABASE_URL + "/rest/v1/osr_events?select=*&order=ts.asc";
+  const url = SUPABASE_URL + "/rest/v1/osr_loop_events?select=*&order=ts.asc";
   const r = await fetch(url, {headers:{apikey:SUPABASE_KEY, Authorization:"Bearer "+SUPABASE_KEY}});
   if(!r.ok) throw new Error("HTTP "+r.status);
   return r.json();
 }
 const esc = s => (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const by = (ev,stream) => ev.filter(e=>e.stream===stream);
+
+// active harness version: most common non-null harness_version, latest ts as tiebreak
+function activeHarnessVersion(ev){
+  const tally = new Map(); // version -> {count, ts}
+  for(const e of ev){
+    const v = e.harness_version;
+    if(v==null || v==='') continue;
+    const cur = tally.get(v) || {count:0, ts:''};
+    cur.count++;
+    if((e.ts||'') > cur.ts) cur.ts = e.ts||'';
+    tally.set(v, cur);
+  }
+  let best=null, bestC=-1, bestTs='';
+  for(const [v,{count,ts}] of tally){
+    if(count>bestC || (count===bestC && ts>bestTs)){ best=v; bestC=count; bestTs=ts; }
+  }
+  return best;
+}
 
 function render(ev){
   const counts = Object.fromEntries(NODE_DEFS.map(n=>[n.k, by(ev,n.stream).length]));
@@ -162,7 +180,9 @@ function render(ev){
     </tr>`;
   }).join('') || `<tr><td colspan="5" class="empty">no signals yet — type a command in a session here.</td></tr>`;
 
-  document.getElementById('meta').innerHTML = `<b>${ev.length}</b> events · updated ${new Date().toLocaleTimeString()}`;
+  const hv = activeHarnessVersion(ev);
+  const hvBit = hv ? ` · harness v${esc(hv)}` : '';
+  document.getElementById('meta').innerHTML = `<b>${ev.length}</b> events${hvBit} · updated ${new Date().toLocaleTimeString()}`;
 }
 
 async function tick(){
