@@ -7,9 +7,9 @@
 // Run: node harness/render.mjs           # print to stdout
 //      node harness/render.mjs --write    # write harness/manifest.md
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
@@ -111,12 +111,90 @@ export function render(manifest) {
   return L.join('\n') + '\n'
 }
 
+// renderIndex — the component index (harness/index.md). Grouped by type in a
+// fixed order, sorted by id within each group. Deterministic: no clocks/randomness.
+const INDEX_TYPE_ORDER = ['orchestrator', 'runner', 'service', 'hook', 'library']
+
+export function renderIndex(components) {
+  const L = []
+  L.push('# OS Harness — Component Index (generated)')
+  L.push('')
+  L.push('> Generated from `harness/registry.json` by `harness/render.mjs`.')
+  L.push('> Do not edit by hand — edit the JSON and run `node harness/render.mjs --index`.')
+  L.push('')
+  const comps = components || []
+  const byType = {}
+  for (const c of comps) (byType[c.type] ||= []).push(c)
+  // Fixed type order first, then any leftover types alphabetically (defensive).
+  const seen = new Set(INDEX_TYPE_ORDER)
+  const extra = Object.keys(byType).filter((t) => !seen.has(t)).sort()
+  const order = [...INDEX_TYPE_ORDER, ...extra]
+  for (const type of order) {
+    const items = (byType[type] || []).slice().sort((a, b) => a.id.localeCompare(b.id))
+    if (!items.length) continue
+    L.push(`### ${type} (${items.length})`)
+    L.push('')
+    L.push(row(['Component', 'Version', 'State', 'Kind', 'Path', 'Role']))
+    L.push(row(['---', '---', '---', '---', '---', '---']))
+    for (const c of items) {
+      L.push(row([c.id, c.version || '—', c.state || '', c.kind || '', `\`${c.path}\``, c.role || '']))
+    }
+    L.push('')
+  }
+  return L.join('\n') + '\n'
+}
+
+// renderChangelog — one component's CHANGELOG.md, built from its versions array.
+// Deterministic: preserves the array order given (newest-last is fine).
+export function renderChangelog(component) {
+  const L = []
+  const id = (component && component.id) || '?'
+  L.push(`# ${id} — changelog (generated)`)
+  L.push('')
+  L.push('> Generated from `harness/registry.json` by `harness/render.mjs`.')
+  L.push('> Do not edit by hand — edit the JSON and run `node harness/render.mjs --changelogs`.')
+  L.push('')
+  L.push(row(['Version', 'Date', 'Change']))
+  L.push(row(['---', '---', '---']))
+  const versions = (component && component.versions) || []
+  for (const v of versions) {
+    L.push(row([v.version || '', v.date || '', v.change || '']))
+  }
+  return L.join('\n') + '\n'
+}
+
 function main() {
   const manifest = JSON.parse(readFileSync(join(HERE, 'manifest.json'), 'utf8'))
   const registry = JSON.parse(readFileSync(join(HERE, 'registry.json'), 'utf8'))
-  const merged = { ...manifest, components: registry.components || [] }
+  const components = registry.components || []
+  const ROOT = resolve(HERE, '..')
+  const args = process.argv.slice(2)
+
+  if (args.includes('--index')) {
+    writeFileSync(join(HERE, 'index.md'), renderIndex(components))
+    process.stdout.write('wrote harness/index.md\n')
+    return
+  }
+
+  if (args.includes('--changelogs')) {
+    let wrote = 0
+    let skipped = 0
+    for (const c of components) {
+      const dir = resolve(ROOT, c.path)
+      if (existsSync(dir) && statSync(dir).isDirectory()) {
+        writeFileSync(join(dir, 'CHANGELOG.md'), renderChangelog(c))
+        wrote++
+      } else {
+        skipped++
+      }
+    }
+    process.stdout.write(`wrote ${wrote} changelogs, skipped ${skipped} (dir absent)\n`)
+    return
+  }
+
+  const merged = { ...manifest, components }
   const md = render(merged)
-  if (process.argv.includes('--write')) {
+  if (args.includes('--write')) {
     writeFileSync(join(HERE, 'manifest.md'), md)
     process.stdout.write('wrote harness/manifest.md\n')
   } else {
