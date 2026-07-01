@@ -1,0 +1,169 @@
+#!/usr/bin/env node
+import { realpathSync } from 'node:fs'
+/**
+ * orchestrator — CANDIDATE (pre-admission; see governance/rules/harness-admission.md), not admitted. See
+ * governance/rules/harness-admission.md.
+ *
+ * The loop driver (the scheduler). It runs one signal through every hop and records a
+ * TERMINAL outcome — nothing is dropped:
+ *
+ *   extract → classify → estimate → DISPATCH → outcome (completed | unknown | failed)
+ *
+ * Separation of powers (architecture): the classifier scores the signal, the estimator
+ * scores the work, and the orchestrator ROUTES. It dispatches only to a REAL handler in
+ * its table; an unrecognised target becomes an explicit 'unknown' — it can never fake a
+ * call to an agent that isn't there (the no-ghost-agent guarantee, runtime side).
+ *
+ * Every hop opens a span on one trace and appends a four-tuple-stamped row via loop-store,
+ * so the run is followable end-to-end and the data layer fills as it goes. The returned
+ * `feedback` lines are what the session-feedback hook prints into the chat.
+ */
+import { spawnSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { newTrace, span, fourTuple, stamp, activeRelease, componentVersion } from '../tracer/index.mjs'
+import { append } from '../loop-store/index.mjs'
+import { classify } from '../classifier/index.mjs'
+import { estimate } from '../estimator/index.mjs'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+// Boot-root indirection (os-reshape P2): OS_ROOT pins the runtime root explicitly
+// (launcher/sealed boots); default stays the file-relative derivation, which inside
+// a sealed snapshot resolves to the snapshot root — self-contained either way.
+export const REPO_ROOT = process.env.OS_ROOT ? resolve(process.env.OS_ROOT) : resolve(HERE, '..', '..', '..')
+
+/** Dispatch table: target → live handler. ONLY real handlers live here. */
+export const HANDLERS = {
+  // The doctor is a real, wired component — run the drift-check for real. spawnSync (not
+  // execFileSync) with a hard timeout: a non-zero exit (doctor is fail-closed on drift) still
+  // yields parseable stdout, so the dispatch is 'completed' and the drift detail rides in the
+  // result — the visible outcome no longer flips completed↔failed on repo state. The timeout is
+  // a fail-open guard against a genuine HANG (30s), not a cutoff for a legitimate 1–7s doctor
+  // run — under full-suite/CI parallelism the nested subprocess can spike past a tight budget,
+  // which would flip the outcome to 'failed' and drop the os: block decision. A real hang hits
+  // the timeout → r.error → 'failed', never blocking the turn.
+  doctor: () => {
+    const doctorPath = join(REPO_ROOT, 'governance/checks/doctor.mjs')
+    const r = spawnSync(process.execPath, [doctorPath, '--json'],
+      { encoding: 'utf8', cwd: REPO_ROOT, timeout: 30000 })
+    if (r.error) throw r.error
+    if (r.signal) throw new Error(`doctor killed by ${r.signal} (hang/timeout?)`)
+    // FAIL-LOUD (os-reshape hardening; eval C6): a doctor that produced no
+    // parseable verdict is a CRASH, never a clean bill. Empty stdout (missing
+    // file, symlinked-path no-op) or unparseable JSON used to fabricate
+    // ok:true/0-errors on the ENFORCED os: path. Exit 1 WITH findings is a
+    // legitimate drift verdict — parsed normally below.
+    if (!r.stdout || !r.stdout.trim()) throw new Error(`doctor produced no output (exit ${r.status}) — missing/crashed at ${doctorPath}`)
+    let findings
+    try { ({ findings } = JSON.parse(r.stdout)) } catch (e) { throw new Error(`doctor output unparseable (exit ${r.status}): ${e.message}`) }
+    if (!Array.isArray(findings)) throw new Error(`doctor output has no findings array (exit ${r.status})`)
+    const errors = findings.filter((f) => f.severity === 'ERROR').length
+    return { ok: errors === 0, errors, warnings: findings.filter((f) => f.severity === 'WARN').length }
+  },
+}
+
+/**
+ * Run one signal through the loop. Returns
+ *   { trace, signal, classification, estimate, outcome, feedback, oneLine }.
+ * `opts`: { handlers, dir (record dir), idGen, now, session, run, call }. idGen/now are
+ * injectable so the whole run is deterministic in tests.
+ */
+export function runLoop(input = {}, opts = {}) {
+  const handlers = opts.handlers || HANDLERS
+  const dir = opts.dir
+  const now = opts.now || (() => new Date().toISOString())
+  const idGen = opts.idGen || (() => randomUUID())
+  const w = (stream, row) => append(stream, row, dir ? { dir, now } : { now })
+
+  const summary = String(input.summary ?? input.prompt ?? input.text ?? '').trim()
+  const feedback = []
+
+  // Version-stamp (OBSERVABILITY → fail-OPEN for the TURN, loud for the operator): read the
+  // active harness release up front so it rides on every run row. A read that fails degrades
+  // to `null` — it must never alter the outcome — but it is REPORTED on stderr: a silent null
+  // stamp is version-blindness (os-reshape P1 hardening; eval O1c).
+  let hv = null
+  try { hv = activeRelease(REPO_ROOT) } catch { hv = null }
+  if (hv == null) process.stderr.write('⚠ version-stamp: activeRelease unresolved (harness/manifest.json unreadable or unpinned) — run rows will carry harnessVersion:null\n')
+
+  // hop 0: open the trace + four-tuple
+  const trace = newTrace({ id: idGen(), now })
+  const tuple = fourTuple({ session: opts.session, run: opts.run ?? trace.traceId, call: opts.call })
+
+  // hop 1: extract
+  const sExtract = span(trace, 'extract', { id: idGen(), now })
+  const sig = w('signals', stamp({ kind: 'signal', phase: 'received', summary, source: input.source || 'cli' }, sExtract, tuple))
+  if (!sig.ok) {
+    // the signal write was DROPPED — do NOT pretend it was captured. Record an explicit
+    // terminal failed run (with the stable id) so nothing fails silently.
+    feedback.push(`signal DROPPED (#${sig.n}) — ${sig.reason || 'write failed'}`)
+    const sRouteD = span(sExtract, 'route', { id: idGen(), now })
+    const outcomeD = { status: 'failed', target: null, error: `signal write dropped: ${sig.reason || 'unknown'}` }
+    const runD = w('runs', stamp({ kind: 'run', signal: sig.id, target: null, status: 'failed', summary, outcome: outcomeD, harnessVersion: hv }, sRouteD, tuple))
+    feedback.push('outcome: failed — signal not durably captured')
+    return { trace, signal: sig, classification: null, estimate: null, outcome: outcomeD, run: runD, feedback, oneLine: `⟶ ${feedback.join('  ·  ')}` }
+  }
+  feedback.push(`signal extracted (#${sig.n})`)
+
+  // hop 2: classify
+  const sClassify = span(sExtract, 'classify', { id: idGen(), now })
+  const classification = classify({ summary })
+  w('classified', stamp({ kind: 'classification', signal: sig.id, summary, ...classification }, sClassify, tuple))
+  feedback.push(`classified → ${classification.type} (${classification.confidence}) → ${classification.target}`)
+
+  // hop 3: estimate
+  const sEstimate = span(sClassify, 'estimate', { id: idGen(), now })
+  const est = estimate(classification)
+  w('estimates', stamp({ kind: 'estimate', signal: sig.id, ...est }, sEstimate, tuple))
+  feedback.push(`estimated ${est.score} (${est.band})`)
+
+  // hop 4: dispatch → outcome
+  const sRoute = span(sEstimate, 'route', { id: idGen(), now })
+  const target = classification.target
+  const handler = handlers[target]
+  let outcome
+  if (!handler) {
+    outcome = { status: 'unknown', target, reason: `no live handler for '${target}'` }
+  } else {
+    try { outcome = { status: 'completed', target, result: handler(sig, classification) } }
+    catch (e) { outcome = { status: 'failed', target, error: String(e?.message || e) } }
+  }
+  // componentVersion: routed targets may be short names — map them to their manifest census id
+  // (the 'doctor' handler is the 'harness-doctor' component). Written EXPLICITLY (null visible,
+  // never omitted): a missing stamp must be observable, not absent (eval O1b).
+  const CENSUS_ALIAS = { doctor: 'harness-doctor' }
+  let cv = null
+  try { cv = componentVersion(CENSUS_ALIAS[target] ?? target, REPO_ROOT) } catch { cv = null }
+  const run = w('runs', stamp({ kind: 'run', signal: sig.id, target, status: outcome.status, summary, outcome, harnessVersion: hv, componentVersion: cv }, sRoute, tuple))
+  feedback.push(`routed → ${target}`)
+  feedback.push(`outcome: ${outcome.status}${outcome.reason ? ` — ${outcome.reason}` : ''}`)
+  // OBSERVABILITY (fail-open): show the active release on the visible trace. Only when known —
+  // a null version simply omits the segment, never breaks the line.
+  if (hv) feedback.push(`v${hv}`)
+
+  const oneLine = `⟶ ${feedback.join('  ·  ')}`
+  return { trace, signal: sig, classification, estimate: est, outcome, run, feedback, oneLine }
+}
+
+// ── thin CLI ──────────────────────────────────────────────────────────────────
+function main() {
+  const args = process.argv.slice(2)
+  const summary = args.filter((a) => a !== '--demo').join(' ') || 'check the harness for drift'
+  const r = runLoop({ summary })
+  process.stdout.write(r.feedback.map((l, i) => `  ${i + 1}. ${l}`).join('\n') + '\n')
+  process.exitCode = r.outcome.status === 'completed' ? 0 : r.outcome.status === 'unknown' ? 3 : 1
+}
+
+/**
+ * CLI main-guard, symlink-proof: node resolves import.meta.url to the REAL
+ * path, while argv[1] may arrive through a symlink (.system/releases/current,
+ * macOS /var, a spaced path). Comparing unresolved forms silently skips main()
+ * — exit 0, no output — the exact silent-failure class caught twice in the
+ * os-reshape (P0 rig, P2 sealed boot). Realpath both sides; any error → false.
+ */
+function cliInvoked(metaUrl) {
+  try { return !!process.argv[1] && metaUrl === pathToFileURL(realpathSync(process.argv[1])).href } catch { return false }
+}
+
+if (cliInvoked(import.meta.url)) main()

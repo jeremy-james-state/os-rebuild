@@ -1,0 +1,39 @@
+{
+  "name": "tracer",
+  "type": "library",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "query",
+  "summary": "Cross-cutting trace context for the signal loop: one traceId per signal, one spanId per hop (linked to its parent), plus the four-tuple (session·run·call·branch). Lets a single action be followed end-to-end as one trace. Pure, zero-dependency, deterministic-friendly (id/clock injectable).",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": {
+    "description": "A parent context (or none) and a hop name.",
+    "schema": { "ctx": "{ traceId, spanId? } | null", "name": "string (hop)" }
+  },
+  "output": {
+    "description": "A trace/span context and stamped rows.",
+    "schema": { "traceId": "string", "spanId": "string", "parentSpanId": "string | null" }
+  },
+  "reads": [],
+  "writes": [],
+  "triggers": "request",
+  "execution": "inline",
+  "provenance": true,
+  "provenanceMapping": {
+    "session": "CLAUDE_CODE_SESSION_ID or caller-supplied",
+    "run": "per-session today; per-tool-call when capture goes per-tool",
+    "call": "caller-supplied hop index",
+    "branch": "git branch of the working tree"
+  },
+  "invariants": [
+    "A span always carries the traceId of its context (one trace per signal).",
+    "A child span links to its parent (parentSpanId), so hops form a chain.",
+    "span() refuses a context with no traceId — no untraced (ghost) hop.",
+    "Pure: no reads, no writes, no hidden state; id and clock are injectable for determinism."
+  ]
+}

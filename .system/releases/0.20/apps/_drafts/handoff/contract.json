@@ -1,0 +1,49 @@
+{
+  "name": "handoff",
+  "type": "library",
+  "status": "in-formation",
+  "state": "sandbox",
+  "lifecycle": "candidate",
+  "role": "command",
+  "summary": "Deterministic spine of the session handoff. save() GUARANTEES the handoff is written to record/handoffs/handoff-<date>.md (append-only, tracked-markdown history) and rendered to docs/RESUME-HERE.md (the always-current 'read this first'). The save location is computed in code (handoffsDir/resumePath from REPO_ROOT), never a free-form argument — a handoff cannot be written anywhere else. SECTIONS + missingSections/isComplete make completeness a check, mirroring incident.",
+  "admission": {
+    "rule": "governance/rules/harness-admission.md",
+    "step": "green",
+    "note": "Candidate. NOT in harness/manifest.json and NOT admitted. Promotion is a human step."
+  },
+  "input": {
+    "description": "A handoff body (the seven sections as markdown) plus metadata: date, session, gitHead. The command generates the body; the component saves it.",
+    "schema": {
+      "body": "string (markdown with the seven ## sections)",
+      "date": "string (YYYY-MM-DD; defaults to today)",
+      "session": "string | 'unknown'",
+      "gitHead": "string (short SHA) | 'unknown'"
+    }
+  },
+  "output": {
+    "description": "The two guaranteed paths written.",
+    "schema": {
+      "datedPath": "string (record/handoffs/handoff-<date>.md)",
+      "resumePath": "string (docs/RESUME-HERE.md)",
+      "id": "string (handoff-<date>)"
+    }
+  },
+  "reads": [
+    "record/handoffs/_template.md"
+  ],
+  "writes": [
+    "record/handoffs/",
+    "docs/RESUME-HERE.md"
+  ],
+  "triggers": "/handoff command",
+  "execution": "inline",
+  "exit": "check exits non-zero if any handoff is incomplete (missing one of the seven sections) — gate-ready, mirrors incident.",
+  "invariants": [
+    "Every handoff is saved to record/handoffs/handoff-<date>.md — the append-only, tracked-markdown history (never at repo root, never elsewhere).",
+    "The latest handoff is always rendered to docs/RESUME-HERE.md (overwrite; always the same path).",
+    "The save location is computed in code (handoffsDir/resumePath), not a caller argument — it cannot be redirected.",
+    "A handoff is complete only when all seven sections are present (isComplete / missingSections).",
+    "The dated history is append-style: a new dated file per handoff; RESUME-HERE.md is the overwrite render.",
+    "Deterministic: identical body + metadata yields identical files (no clocks beyond the supplied date)."
+  ]
+}
