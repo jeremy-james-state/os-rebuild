@@ -42,6 +42,8 @@ const EXCLUDE = [
   /CHANGELOG\.md$/,
   /governance-ledger\.jsonl$/,
   /(^|\/)golden-master\.json$/,   // pinned pre-reshape behaviour — old paths expected
+  /(^|\/)move-map\.json$/,        // the survey artifact — deliberately RECORDS pre-move paths
+  /(^|\/)coverage\.json$/,        // §D2 id → owner map; names pre-move test paths
   /(^|\/)decisions(\/|$)/,        // governance/decisions history
   /(^|\/)web(\/|$)/,              // NN2: pinned, untouched
 ]

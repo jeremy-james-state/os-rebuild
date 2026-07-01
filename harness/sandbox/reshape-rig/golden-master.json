@@ -1,7 +1,7 @@
 {
-  "$comment": "Golden master for the os-reshape behavioural-equivalence gate (F5). Captured pre-reshape; compare with capture.mjs --check. capturedAt/head are provenance only — NOT compared.",
-  "capturedAt": "2026-07-01T20:04:04.182Z",
-  "head": "ee52271be4dbae1c6b2e84df4d15c2ff7b5a0047",
+  "$comment": "Golden master for the os-reshape behavioural-equivalence gate (F5). Captured pre-reshape; compare with capture.mjs --check. capturedAt/head/info are provenance only — NOT compared.",
+  "capturedAt": "2026-07-01T20:43:38.260Z",
+  "head": "5aee39619aee60ef426c5d1441c3cdfea6e96e95",
   "entries": {
     "F1": {
       "decision": "block",
@@ -20,31 +20,35 @@
     "G1": {
       "doctor": {
         "status": 0,
-        "errors": [],
-        "warns": [
-          "chain-stage-missing",
-          "chain-stage-partial",
-          "mcp-undeclared",
-          "sequence-step-unstable"
-        ]
+        "errors": []
       },
       "governance-check": {
         "status": 0,
-        "errors": [],
-        "warns": []
+        "errors": []
       },
       "structure-check": {
         "status": 0,
-        "errors": [],
-        "warns": [
-          "STRUCTURE_DRIFT"
-        ]
+        "errors": []
       },
       "no-ghost-agent": {
         "status": 0,
-        "errors": [],
-        "warns": []
+        "errors": []
       }
+    }
+  },
+  "info": {
+    "G1warns": {
+      "doctor": [
+        "chain-stage-missing",
+        "chain-stage-partial",
+        "mcp-undeclared",
+        "sequence-step-unstable"
+      ],
+      "governance-check": [],
+      "structure-check": [
+        "STRUCTURE_DRIFT"
+      ],
+      "no-ghost-agent": []
     }
   }
 }

@@ -13,7 +13,7 @@
  * status + sorted ERROR/WARN codes (G1). Normalization masks only volatility
  * (rig.mjs normalize()); everything else must match byte-for-byte.
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -24,13 +24,16 @@ const GOLDEN = join(HERE, 'golden-master.json')
 
 function captureEntries() {
   const f1 = evalF1(); const f2 = evalF2(); const f3 = evalF3(); const f4 = evalF4(); const g1 = evalG1()
+  for (const e of [f1, f2, f4]) if (e.recordDir) rmSync(e.recordDir, { recursive: true, force: true })
   for (const e of [f1, f2, f3, f4, g1]) {
     if (!e.pass) {
       process.stderr.write(`capture: eval ${e.id} FAILED on the current tree — refusing to capture a broken golden master.\n  ${e.detail}\n`)
       process.exit(2)
     }
   }
-  return { F1: f1.golden, F2: f2.golden, F3: f3.golden, F4: f4.golden, G1: g1.golden }
+  // entries are COMPARED byte-for-byte (normalized); info is provenance only
+  // (WARN-code sets — governance surface P1 legitimately evolves).
+  return { entries: { F1: f1.golden, F2: f2.golden, F3: f3.golden, F4: f4.golden, G1: g1.golden }, info: { G1warns: g1.info } }
 }
 
 function diffObjects(a, b, path = '') {
@@ -51,12 +54,12 @@ function diffObjects(a, b, path = '') {
 const mode = process.argv.includes('--write') ? 'write' : process.argv.includes('--check') ? 'check' : null
 if (!mode) { process.stderr.write('usage: capture.mjs --write | --check\n'); process.exit(2) }
 
-const entries = captureEntries()
+const { entries, info } = captureEntries()
 
 if (mode === 'write') {
   let head = 'unknown'
   try { head = execFileSync('git', ['-C', REPO, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() } catch { /* no git */ }
-  writeFileSync(GOLDEN, JSON.stringify({ $comment: 'Golden master for the os-reshape behavioural-equivalence gate (F5). Captured pre-reshape; compare with capture.mjs --check. capturedAt/head are provenance only — NOT compared.', capturedAt: new Date().toISOString(), head, entries }, null, 2) + '\n')
+  writeFileSync(GOLDEN, JSON.stringify({ $comment: 'Golden master for the os-reshape behavioural-equivalence gate (F5). Captured pre-reshape; compare with capture.mjs --check. capturedAt/head/info are provenance only — NOT compared.', capturedAt: new Date().toISOString(), head, entries, info }, null, 2) + '\n')
   process.stdout.write(`golden master captured → ${GOLDEN}\n`)
 } else {
   let stored

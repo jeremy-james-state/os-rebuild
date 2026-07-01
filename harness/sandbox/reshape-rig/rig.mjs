@@ -16,7 +16,7 @@
  * ONE place when files move, and every eval follows.
  */
 import { spawnSync, spawn } from 'node:child_process'
-import { cpSync, mkdtempSync, readFileSync, existsSync, realpathSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, existsSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,22 +53,43 @@ export const abs = (rel, root = REPO) => join(root, rel)
 
 // ── process helpers ──────────────────────────────────────────────────────────
 
+/**
+ * Base env for every child the rig spawns: ambient OS_RECORD_DIR/OS_DB/OS_DROPS
+ * are STRIPPED so a child can only reach a record dir the rig explicitly hands
+ * it — running the rig under some outer hermetic wrapper can never leak the
+ * outer (or the real) record into an un-redirected child.
+ */
+function baseEnv() {
+  const e = { ...process.env }
+  delete e.OS_RECORD_DIR; delete e.OS_DB; delete e.OS_DROPS
+  return e
+}
+
 /** Spawn a node script synchronously; never throws — returns {status, stdout, stderr, signal}. */
 export function runNode(script, { args = [], cwd = REPO, input, env = {}, timeout = 180000 } = {}) {
   const r = spawnSync(process.execPath, [script, ...args], {
-    cwd, input, encoding: 'utf8', timeout, env: { ...process.env, ...env },
+    cwd, input, encoding: 'utf8', timeout, env: { ...baseEnv(), ...env },
   })
   return { status: r.status, stdout: r.stdout || '', stderr: r.stderr || '', signal: r.signal }
 }
 
-/** Spawn a node script asynchronously (for concurrency rigs). Resolves {status, stdout, stderr}. */
-export function runNodeAsync(script, { args = [], cwd = REPO, env = {} } = {}) {
+/**
+ * Spawn a node script asynchronously (for concurrency rigs). Resolves
+ * {status, stdout, stderr, killed}. Hard timeout: the child is SIGKILLed and
+ * killed:true reported — a hung publish/writer must fail the battery, not
+ * outlive it.
+ */
+export function runNodeAsync(script, { args = [], cwd = REPO, env = {}, timeout = 180000 } = {}) {
   return new Promise((resolvep) => {
-    const c = spawn(process.execPath, [script, ...args], { cwd, env: { ...process.env, ...env } })
-    let stdout = '', stderr = ''
+    const c = spawn(process.execPath, [script, ...args], { cwd, env: { ...baseEnv(), ...env }, stdio: ['ignore', 'pipe', 'pipe'] })
+    let stdout = '', stderr = '', done = false
+    const timer = setTimeout(() => { if (!done) c.kill('SIGKILL') }, timeout)
     c.stdout.on('data', (d) => { stdout += d })
     c.stderr.on('data', (d) => { stderr += d })
-    c.on('close', (status) => resolvep({ status, stdout, stderr }))
+    c.on('close', (status, signal) => {
+      done = true; clearTimeout(timer)
+      resolvep({ status, stdout, stderr, killed: signal === 'SIGKILL' })
+    })
   })
 }
 
@@ -94,18 +115,36 @@ export function repoCopy({ withGit = true, from = REPO } = {}) {
   // realpath — see hermeticEnv(): without it the copy's own checks no-op
   // silently on macOS (main-guard never matches under /var → /private/var).
   const dest = realpathSync(mkdtempSync(join(tmpdir(), 'rig-repo-')))
-  cpSync(from, dest, {
-    recursive: true, force: true,
-    filter: (src) => {
-      const r = relative(from, src)
-      if (!r || r.startsWith('..')) return true
-      const segs = r.split(sep)
-      if (segs.includes('node_modules')) return false
-      if (!withGit && segs[0] === '.git') return false
-      return true
-    },
-  })
-  return dest
+  const filter = (src) => {
+    const r = relative(from, src)
+    if (!r || r.startsWith('..')) return true
+    const segs = r.split(sep)
+    if (segs.includes('node_modules')) return false
+    if (!withGit && segs[0] === '.git') return false
+    // state/ is machine-local runtime projection (sqlite + wal can be mid-write
+    // — copying them races). The copy gets an empty state/ dir instead.
+    if (segs[0] === 'state' && segs.length > 1) return false
+    return true
+  }
+  // verbatimSymlinks: without it cpSync REWRITES relative symlinks to absolute
+  // targets pointing back into the LIVE tree — a later rm through the copy's
+  // pointer would then delete live files. Retry ×3: cpSync can throw when a
+  // concurrent writer (git, the hook) creates/deletes transients mid-walk;
+  // a partial dest is removed before each retry and on final failure.
+  let lastErr
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      cpSync(from, dest, { recursive: true, force: true, verbatimSymlinks: true, filter })
+      mkdirSync(join(dest, 'state'), { recursive: true })
+      return dest
+    } catch (e) {
+      lastErr = e
+      rmSync(dest, { recursive: true, force: true })
+      mkdirSync(dest, { recursive: true })
+    }
+  }
+  rmSync(dest, { recursive: true, force: true })
+  throw new Error(`repoCopy failed after 3 attempts: ${lastErr?.message}`)
 }
 
 // ── normalization (golden master) ────────────────────────────────────────────
@@ -147,13 +186,13 @@ export function evalF1(root = REPO) {
 
 /** F2: natural language → additionalContext carries the trace + operating protocol. */
 export function evalF2(root = REPO) {
-  const { env } = hermeticEnv()
+  const { dir, env } = hermeticEnv()
   const r = runNode(abs(PATHS.sessionFeedback, root), { args: ['--text', 'what is drift in the harness'], cwd: root, env })
   let j = null
   try { j = JSON.parse(r.stdout) } catch { /* fall through */ }
   const ctx = j?.hookSpecificOutput?.additionalContext || ''
   const pass = j?.hookSpecificOutput?.hookEventName === 'UserPromptSubmit' && ctx.includes('OPERATING PROTOCOL') && ctx.includes('🔁 OS loop')
-  return { id: 'F2', pass, detail: pass ? 'inject + protocol' : `stdout=${r.stdout.slice(0, 400)}`, golden: j ? { event: j.hookSpecificOutput?.hookEventName, context: normalize(ctx, { root }) } : null }
+  return { id: 'F2', pass, detail: pass ? 'inject + protocol' : `stdout=${r.stdout.slice(0, 400)}`, golden: j ? { event: j.hookSpecificOutput?.hookEventName, context: normalize(ctx, { root }) } : null, recordDir: dir }
 }
 
 /** F3: statusline renders the 🔁 trace. (Read-only — no redirect needed.) */
@@ -165,10 +204,10 @@ export function evalF3(root = REPO) {
 
 /** F4: orchestrator demo run routes to doctor and completes. */
 export function evalF4(root = REPO) {
-  const { env } = hermeticEnv()
+  const { dir, env } = hermeticEnv()
   const r = runNode(abs(PATHS.orchestrator, root), { args: ['--demo', 'check', 'the', 'harness', 'for', 'drift'], cwd: root, env })
   const pass = r.status === 0 && r.stdout.includes('routed → doctor') && r.stdout.includes('outcome: completed')
-  return { id: 'F4', pass, detail: pass ? 'routed → doctor, completed' : `status=${r.status} stdout=${r.stdout.slice(0, 400)}`, golden: { stdout: normalize(r.stdout, { root }) } }
+  return { id: 'F4', pass, detail: pass ? 'routed → doctor, completed' : `status=${r.status} stdout=${r.stdout.slice(0, 400)}`, golden: { stdout: normalize(r.stdout, { root }) }, recordDir: dir }
 }
 
 /** C1/C2: confinement blocks a sibling-project read (exit 2) and allows an in-repo read (exit 0). */
@@ -201,15 +240,22 @@ export function runCheck(rel, root = REPO, extraArgs = []) {
   return { status: noOutput ? -1 : r.status, noOutput, errors: codes('ERROR'), warns: codes('WARN'), stdout: r.stdout, stderr: r.stderr }
 }
 
-/** G1: all four checks exit 0 on the live tree. */
+/**
+ * G1: all four checks exit 0 on the live tree.
+ * Golden compares status + ERROR codes ONLY. WARN sets are governance surface
+ * that P1 is MANDATED to evolve (structure canon, hardened checks) — pinning
+ * them would make F5 red for a change the spec ordered. Warns are still
+ * captured, in `info` (never compared).
+ */
 export function evalG1(root = REPO) {
-  const out = {}
+  const out = {}, warnInfo = {}
   for (const [name, rel] of [['doctor', PATHS.doctor], ['governance-check', PATHS.governanceCheck], ['structure-check', PATHS.structureCheck], ['no-ghost-agent', PATHS.noGhost]]) {
     const c = runCheck(rel, root)
-    out[name] = { status: c.status, errors: c.errors, warns: c.warns }
+    out[name] = { status: c.status, errors: c.errors }
+    warnInfo[name] = c.warns
   }
   const pass = Object.values(out).every((c) => c.status === 0)
-  return { id: 'G1', pass, detail: JSON.stringify(Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.status]))), golden: out }
+  return { id: 'G1', pass, detail: JSON.stringify(Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.status]))), golden: out, info: warnInfo }
 }
 
 /** C3: doctor is deterministic + fast: 5 consecutive runs, all exit 0, each within budget. */
