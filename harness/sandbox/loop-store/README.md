@@ -15,12 +15,20 @@ append('signals', { summary: 'hello', traceId, session, call: 1 })   // → { ok
 project()                                                            // rebuild state/os.db from the JSONL
 ```
 
-Read it like a human:
+Read it like a human. The `session-feedback` hook **auto-projects** `state/os.db` every turn,
+so it stays current; you can also rebuild it by hand with `node index.mjs project`.
+
 ```sh
-node index.mjs project
-sqlite3 ../../../state/os.db '.tables'
-sqlite3 ../../../state/os.db 'select stream,n,status,summary from events order by ts;'
+sqlite3 state/os.db '.tables'                 -- events + a view per node + the `loop` view
+sqlite3 -header -column state/os.db 'select * from loop;'   -- one row per command, the whole journey:
+--   signal                  | type     | confidence | score | band   | target       | status
+--   check the harness…      | check    | high       | 61    | medium | doctor       | completed
+--   the deploy failed       | incident | high       | 73    | high   | investigator | unknown
+sqlite3 -header -column state/os.db 'select n,summary,target,status from runs;'   -- one node
 ```
+
+Key loop fields (`type, confidence, target, score, band, signal`) are **promoted to columns**
+(not just buried in `payload`), so queries read plainly.
 
 - **Truth-first** — JSONL appended before the projection. A failed write lands in
   `state/loop-store-drops.jsonl` (nothing silent). The index `n` is **gapless** — gaps are

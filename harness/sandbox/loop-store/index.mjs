@@ -134,6 +134,7 @@ CREATE TABLE events (
   kind TEXT,
   status TEXT,
   summary TEXT,
+  type TEXT, confidence TEXT, target TEXT, score INTEGER, band TEXT, signal TEXT,
   trace_id TEXT, span_id TEXT, parent_span_id TEXT,
   session TEXT, run TEXT, call INTEGER, branch TEXT,
   payload TEXT,
@@ -146,7 +147,18 @@ CREATE VIEW estimates  AS SELECT * FROM events WHERE stream='estimates';
 CREATE VIEW reconcile  AS SELECT * FROM events WHERE stream='reconcile';
 CREATE VIEW incidents  AS SELECT * FROM events WHERE stream='incidents';
 CREATE VIEW chain      AS SELECT * FROM events WHERE stream='chain';
-CREATE VIEW gates      AS SELECT * FROM events WHERE stream='gates';`
+CREATE VIEW gates      AS SELECT * FROM events WHERE stream='gates';
+-- one readable row per command: the whole journey through the loop, joined by trace_id
+CREATE VIEW loop AS
+  SELECT s.ts, s.trace_id, s.summary,
+         c.type, c.confidence, e.score, e.band,
+         r.target, r.status
+  FROM events s
+  LEFT JOIN events c ON c.stream='classified' AND c.trace_id=s.trace_id
+  LEFT JOIN events e ON e.stream='estimates'  AND e.trace_id=s.trace_id
+  LEFT JOIN events r ON r.stream='runs'        AND r.trace_id=s.trace_id
+  WHERE s.stream='signals'
+  ORDER BY s.n;`
 
 /**
  * Drop-and-rebuild state/os.db's `events` table (+ per-stream views) from the JSONL truth.
@@ -156,12 +168,13 @@ CREATE VIEW gates      AS SELECT * FROM events WHERE stream='gates';`
 export function project({ dir = recordDir(), db = dbPath(), streams = STREAMS } = {}) {
   mkdirSync(dirname(db), { recursive: true })
   const sql = new DatabaseSync(db)
-  sql.exec('DROP TABLE IF EXISTS events;')
+  sql.exec('DROP VIEW IF EXISTS loop;')
   for (const v of STREAMS) sql.exec(`DROP VIEW IF EXISTS ${v};`)
+  sql.exec('DROP TABLE IF EXISTS events;')
   sql.exec(SCHEMA)
   const ins = sql.prepare(`INSERT OR REPLACE INTO events
-    (stream,n,id,ts,kind,status,summary,trace_id,span_id,parent_span_id,session,run,call,branch,payload)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    (stream,n,id,ts,kind,status,summary,type,confidence,target,score,band,signal,trace_id,span_id,parent_span_id,session,run,call,branch,payload)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
   let rows = 0
   const allGaps = {}, allDups = {}
   for (const stream of streams) {
@@ -169,7 +182,8 @@ export function project({ dir = recordDir(), db = dbPath(), streams = STREAMS } 
     for (const r of records.sort((a, b) => (a.n ?? 0) - (b.n ?? 0))) {
       const summary = r.summary == null ? null : String(r.summary).slice(0, 500) // explicit null guard (no falsy short-circuit)
       ins.run(stream, r.n ?? 0, r.id ?? `${stream}:${r.n}`, r.ts ?? null, r.kind ?? null, r.status ?? null,
-        summary, r.traceId ?? null, r.spanId ?? null, r.parentSpanId ?? null,
+        summary, r.type ?? null, r.confidence ?? null, r.target ?? null, typeof r.score === 'number' ? r.score : null, r.band ?? null, r.signal ?? null,
+        r.traceId ?? null, r.spanId ?? null, r.parentSpanId ?? null,
         r.session ?? null, r.run ?? null, typeof r.call === 'number' ? r.call : null, r.branch ?? null, JSON.stringify(r))
       rows++
     }

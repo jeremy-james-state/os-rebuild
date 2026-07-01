@@ -15,6 +15,7 @@
  * Test/CLI: `printf '{"prompt":"check drift"}' | node index.mjs`  or  `node index.mjs --text "check drift"`.
  */
 import { runLoop } from '../orchestrator/index.mjs'
+import { project } from '../loop-store/index.mjs'
 
 function readStdin() {
   return new Promise((res) => {
@@ -49,6 +50,7 @@ async function main() {
 
   try {
     const r = runLoop({ summary: prompt, source: 'session' })
+    try { project() } catch { /* projection is best-effort; the JSONL truth is already durable */ }
     process.stdout.write(renderLine(r) + '\n')
   } catch (e) {
     process.stdout.write(`🔁 OS loop  (skipped: ${String(e?.message || e).slice(0, 80)})\n`)

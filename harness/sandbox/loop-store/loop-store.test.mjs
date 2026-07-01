@@ -49,6 +49,27 @@ test('project: rebuilds a readable events table + per-stream views', () => {
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
+test('the loop view stitches a command\'s whole journey into one readable row', () => {
+  const dir = tmp(); const db = join(dir, 'os.db')
+  try {
+    const t = 'tr1'
+    append('signals', { summary: 'check drift', traceId: t }, { dir })
+    append('classified', { type: 'check', confidence: 'high', target: 'doctor', traceId: t }, { dir })
+    append('estimates', { score: 61, band: 'medium', traceId: t }, { dir })
+    append('runs', { status: 'completed', target: 'doctor', traceId: t }, { dir })
+    project({ dir, db })
+    const sql = new DatabaseSync(db)
+    const row = sql.prepare('select * from loop').get()
+    assert.equal(row.summary, 'check drift')
+    assert.equal(row.type, 'check')
+    assert.equal(row.confidence, 'high')
+    assert.equal(row.score, 61)
+    assert.equal(row.target, 'doctor')
+    assert.equal(row.status, 'completed')     // the whole journey, one row
+    sql.close()
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
 test('duplicates() catches a duplicate-n that gaps() is blind to (completeness proof holds)', () => {
   const dir = tmp()
   try {
