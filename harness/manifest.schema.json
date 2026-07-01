@@ -45,7 +45,7 @@
     "states": {
       "type": "array",
       "description": "The promotion axis. A component is in exactly one state.",
-      "items": { "enum": ["production", "staging", "sandbox", "planned", "quarantined", "retired"] }
+      "items": { "enum": ["production", "staging", "candidate", "sandbox", "planned", "quarantined", "retired"] }
     },
     "kinds": {
       "type": "array",
