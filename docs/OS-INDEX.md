@@ -25,6 +25,7 @@ four tiers and where each thing lives. `structure-check` warns if it goes missin
 ## Start here
 
 - **What is the harness / where does it end?** → [`docs/BOUNDARY.md`](BOUNDARY.md)
+- **How do the local folder and GitHub stay in sync?** → [`docs/MAINTAINING-OS-AND-HARNESS.md`](MAINTAINING-OS-AND-HARNESS.md)
 - **What components exist right now?** → [`harness/index.md`](../harness/index.md) (generated)
 - **What is a component?** → [`governance/decisions/component-model.md`](../governance/decisions/component-model.md)
 - **What's a candidate vs admitted?** → [`governance/candidates.md`](../governance/candidates.md) · [`governance/rules/harness-admission.md`](../governance/rules/harness-admission.md)
