@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { newTrace, span, fourTuple, stamp } from './index.mjs'
+import { newTrace, span, fourTuple, stamp, harnessVersion, activeRelease, componentVersion } from './index.mjs'
 
 test('newTrace: mints a traceId and is deterministic when injected', () => {
   const t = newTrace({ id: 'trace-1', now: () => '2026-07-01T00:00:00.000Z' })
@@ -51,4 +51,21 @@ test('stamp: without a four-tuple leaves provenance untouched', () => {
   assert.equal(row.traceId, 'trace-1')
   assert.equal(row.spanId, null)
   assert.equal('session' in row, false)     // no four-tuple passed → not invented
+})
+
+test('activeRelease: returns the manifest harnessVersion (matches harnessVersion())', () => {
+  const v = activeRelease()
+  assert.equal(v, harnessVersion())         // same source of truth
+  assert.match(v, /^\d/)                     // a real version, e.g. '0.8'
+})
+
+test('activeRelease: fails OPEN — a bad root degrades to null, never throws', () => {
+  assert.equal(activeRelease('/no/such/root'), null)
+})
+
+test('componentVersion: reads a registered component id; unknown/absent id → null (fail-open)', () => {
+  assert.match(componentVersion('orchestrator'), /^\d/)   // a real registry id → its version
+  assert.equal(componentVersion('doctor'), null)          // not a registry id → null (expected, not an error)
+  assert.equal(componentVersion(undefined), null)
+  assert.equal(componentVersion('orchestrator', '/no/such/root'), null)  // bad root → null, never throws
 })

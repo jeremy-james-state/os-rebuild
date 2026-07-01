@@ -132,5 +132,31 @@ test('nextIndex() handles a large stream without a Math.max spread cliff', () =>
 
 test('STREAMS excludes the governance-ledger (different shape, not loop data)', () => {
   assert.equal(STREAMS.includes('governance-ledger'), false)
-  assert.deepEqual(STREAMS, ['signals', 'runs', 'classified', 'estimates', 'reconcile', 'incidents', 'chain', 'gates'])
+  assert.deepEqual(STREAMS, ['signals', 'runs', 'classified', 'estimates', 'reconcile', 'incidents', 'chain', 'gates', 'releases'])
+})
+
+test('the releases stream is a real, appendable stream (for release-cut events)', () => {
+  const dir = tmp()
+  try {
+    assert.equal(STREAMS.includes('releases'), true)
+    // speculative streams were cut — not smuggled back in
+    assert.equal(STREAMS.includes('harness-changes'), false)
+    assert.equal(STREAMS.includes('push-events'), false)
+    const r = append('releases', { kind: 'release', harnessVersion: '0.8' }, { dir, now: fixedNow })
+    assert.deepEqual({ ok: r.ok, n: r.n, id: r.id }, { ok: true, n: 1, id: 'releases:1' })
+    assert.equal(read('releases', dir).records[0].harnessVersion, '0.8')
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('project() builds a queryable releases view from the truth log', () => {
+  const dir = tmp(); const db = join(dir, 'os.db')
+  try {
+    append('releases', { kind: 'release', summary: 'cut 0.8', traceId: 'rel-1' }, { dir, now: fixedNow })
+    project({ dir, db })
+    const sql = new DatabaseSync(db)
+    const row = sql.prepare("SELECT * FROM releases").get()   // the view exists and is queryable
+    assert.equal(row.stream, 'releases')
+    assert.equal(row.summary, 'cut 0.8')
+    sql.close()
+  } finally { rmSync(dir, { recursive: true, force: true }) }
 })

@@ -21,7 +21,7 @@ import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { newTrace, span, fourTuple, stamp } from '../tracer/index.mjs'
+import { newTrace, span, fourTuple, stamp, activeRelease, componentVersion } from '../tracer/index.mjs'
 import { append } from '../loop-store/index.mjs'
 import { classify } from '../classifier/index.mjs'
 import { estimate } from '../estimator/index.mjs'
@@ -63,6 +63,11 @@ export function runLoop(input = {}, opts = {}) {
   const summary = String(input.summary ?? input.prompt ?? input.text ?? '').trim()
   const feedback = []
 
+  // Version-stamp (OBSERVABILITY → fail-OPEN): read the active harness release up front so it
+  // rides on every run row. A read that fails degrades to `null` — it must never alter the outcome.
+  let hv = null
+  try { hv = activeRelease(REPO_ROOT) } catch { hv = null }
+
   // hop 0: open the trace + four-tuple
   const trace = newTrace({ id: idGen(), now })
   const tuple = fourTuple({ session: opts.session, run: opts.run ?? trace.traceId, call: opts.call })
@@ -76,7 +81,7 @@ export function runLoop(input = {}, opts = {}) {
     feedback.push(`signal DROPPED (#${sig.n}) — ${sig.reason || 'write failed'}`)
     const sRouteD = span(sExtract, 'route', { id: idGen(), now })
     const outcomeD = { status: 'failed', target: null, error: `signal write dropped: ${sig.reason || 'unknown'}` }
-    const runD = w('runs', stamp({ kind: 'run', signal: sig.id, target: null, status: 'failed', summary, outcome: outcomeD }, sRouteD, tuple))
+    const runD = w('runs', stamp({ kind: 'run', signal: sig.id, target: null, status: 'failed', summary, outcome: outcomeD, harnessVersion: hv }, sRouteD, tuple))
     feedback.push('outcome: failed — signal not durably captured')
     return { trace, signal: sig, classification: null, estimate: null, outcome: outcomeD, run: runD, feedback, oneLine: `⟶ ${feedback.join('  ·  ')}` }
   }
@@ -105,9 +110,15 @@ export function runLoop(input = {}, opts = {}) {
     try { outcome = { status: 'completed', target, result: handler(sig, classification) } }
     catch (e) { outcome = { status: 'failed', target, error: String(e?.message || e) } }
   }
-  const run = w('runs', stamp({ kind: 'run', signal: sig.id, target, status: outcome.status, summary, outcome }, sRoute, tuple))
+  // fail-open: componentVersion is null when the target isn't a registry id (e.g. 'doctor', 'unknown')
+  let cv = null
+  try { cv = componentVersion(target, REPO_ROOT) } catch { cv = null }
+  const run = w('runs', stamp({ kind: 'run', signal: sig.id, target, status: outcome.status, summary, outcome, harnessVersion: hv, ...(cv ? { componentVersion: cv } : {}) }, sRoute, tuple))
   feedback.push(`routed → ${target}`)
   feedback.push(`outcome: ${outcome.status}${outcome.reason ? ` — ${outcome.reason}` : ''}`)
+  // OBSERVABILITY (fail-open): show the active release on the visible trace. Only when known —
+  // a null version simply omits the segment, never breaks the line.
+  if (hv) feedback.push(`v${hv}`)
 
   const oneLine = `⟶ ${feedback.join('  ·  ')}`
   return { trace, signal: sig, classification, estimate: est, outcome, run, feedback, oneLine }

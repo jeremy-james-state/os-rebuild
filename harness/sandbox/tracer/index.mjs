@@ -56,6 +56,35 @@ export function harnessVersion(root = REPO_ROOT) {
   catch { return null }
 }
 
+/**
+ * The active harness release identifier — `harnessVersion` from the manifest, confirmed by the
+ * presence of its pin file `harness/releases/<harnessVersion>.json`. Pure observability, so it
+ * fails OPEN: any error (missing manifest, bad JSON, missing pin) degrades to `null`, never throws.
+ */
+export function activeRelease(root = REPO_ROOT) {
+  try {
+    const v = harnessVersion(root)
+    if (!v) return null
+    // Confirm the release is pinned; if the pin is missing we still return the version (fail-open).
+    try { readFileSync(join(root, `harness/releases/${v}.json`), 'utf8') } catch { /* pin optional */ }
+    return v
+  } catch { return null }
+}
+
+/**
+ * The registered version of a component id, read from harness/registry.json. Fail-OPEN: any error,
+ * or an id with no matching component, degrades to `null`. `null` for a target that isn't a
+ * component id (e.g. 'doctor', 'unknown') — that's expected, not an error.
+ */
+export function componentVersion(id, root = REPO_ROOT) {
+  try {
+    if (!id) return null
+    const reg = JSON.parse(readFileSync(join(root, 'harness/registry.json'), 'utf8'))
+    const c = (reg.components || []).find((x) => x.id === id)
+    return c?.version ?? null
+  } catch { return null }
+}
+
 /** Fill the four-tuple from explicit values, then env, then git. */
 export function fourTuple({ session, run, call, branch } = {}) {
   const sess = session ?? process.env.CLAUDE_CODE_SESSION_ID ?? null

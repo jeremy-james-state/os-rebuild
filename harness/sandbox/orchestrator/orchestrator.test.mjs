@@ -18,7 +18,9 @@ test('a drift request flows extract→classify→estimate→route→completed, a
       { dir, now: fixedNow, idGen: ids(), session: 's1', handlers: { doctor: () => ({ ok: true, errors: 0 }) } })
     assert.equal(r.classification.target, 'doctor')
     assert.equal(r.outcome.status, 'completed')
-    assert.equal(r.feedback.length, 5)
+    // 5 loop hops + a trailing version segment (observability), rendered from the real manifest
+    assert.equal(r.feedback.length, 6)
+    assert.match(r.feedback.at(-1), /^v\d/)                          // e.g. 'v0.8'
     // every stream got exactly one row — nothing dropped along the way
     for (const s of ['signals', 'classified', 'estimates', 'runs']) {
       assert.equal(read(s, dir).records.length, 1, `${s} should have 1 row`)
@@ -27,6 +29,20 @@ test('a drift request flows extract→classify→estimate→route→completed, a
     const run = read('runs', dir).records[0]
     assert.equal(run.session, 's1')
     assert.equal(run.traceId, read('signals', dir).records[0].traceId)
+    // …and is version-stamped with the active harness release (observability, fail-open)
+    assert.match(run.harnessVersion, /^\d/)                          // stamped, e.g. '0.8'
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('a run routed to a registry component id is also stamped with its componentVersion (fail-open)', () => {
+  const dir = tmp()
+  try {
+    // 'investigate…' classifies to target 'investigator', which IS a registry component id
+    const r = runLoop({ summary: 'investigate this incident' }, { dir, now: fixedNow, idGen: ids(), session: 's1' })
+    assert.equal(r.classification.target, 'investigator')
+    const run = read('runs', dir).records[0]
+    assert.match(run.harnessVersion, /^\d/)          // active release stamped
+    assert.match(run.componentVersion, /^\d/)         // the routed component's version too
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
 
