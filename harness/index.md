@@ -26,7 +26,7 @@
 | deployer | 0.1.0 | planned | engine-agent | `harness/runners/deployer/` | Deploy gate + sign-off + verify + auto-rollback; auto only for preview/staging/non-client/low-impact |
 | executor | 0.1.0 | planned | engine-agent | `harness/runners/executor/` | Executes one atomic step: mechanical -> template codegen, novel -> model; confines writes to worktree |
 | explainer | 0.1.0 | planned | experiment | `harness/runners/explainer/` | Explains a target file as a Frame; grounded, never invents |
-| harness-doctor | 0.2.0 | staging | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule |
+| harness-doctor | 0.3.0 | staging | governance | `governance/enforcement/doctor.mjs` | Drift-check: validates this manifest against disk, wiring, environment, and the production-never-depends-on-sandbox rule |
 | interface-build | 0.1.0 | retired | experiment | `interface-build/` | Legacy work-tracker UI design-system build |
 | investigator | 0.1.0 | candidate | engine-agent | `harness/sandbox/investigator/` | The first agent: an LLM-driven runner that investigates and fills an incident — evidence-based root cause + the five steps |
 | nightly | 0.1.0 | planned | experiment | `harness/runners/nightly/` | Retrospective optimizer: combs prior-day agent_runs for inefficiencies; proposes, never auto-applies |
@@ -59,7 +59,7 @@
 | approve-hook | 0.1.0 | planned | hook | `harness/hooks/approve-hook/` | UserPromptSubmit hook intercepting 'approve <item> <stage>' prompts |
 | away-gate | 0.1.0 | planned | hook | `harness/hooks/away-gate/` | PreToolUse safety gate for Auto Mode: allow read/test/git-safe/draft, deny deploy/external-send/money/destructive |
 | capture-hook | 0.1.0 | planned | hook | `harness/hooks/capture-hook/` | UserPromptSubmit hook for +task / +list instant capture (no model turn) |
-| confinement | 0.2.0 | candidate | gate | `harness/sandbox/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
+| confinement | 0.3.0 | candidate | gate | `harness/sandbox/confinement/` | PreToolUse fence: blocks tool calls targeting sibling projects (preventive tier; hardening tracked in the confinement-sandbox spec) |
 | harness-lock | 0.2.0 | candidate | gate | `harness/sandbox/harness-lock/` | PreToolUse write-lock: a WRITE to a harness component acquires/refreshes the component's single-writer lock; a WRITE colliding with a LIVE foreign lock is blocked. Control: fail-closed on a live conflict, fail-open on any guard error. |
 | pre-push-hook | 0.1.0 | planned | hook | `harness/hooks/pre-push-hook/` | Git pre-push entry point that delegates to decision-enforcer |
 | session-feedback | 0.1.0 | candidate | hook | `harness/sandbox/session-feedback/` | UserPromptSubmit hook: runs the loop on the prompt and prints the trace into the session; fail-open |

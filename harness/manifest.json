@@ -1,6 +1,6 @@
 {
   "manifestVersion": "2.0",
-  "harnessVersion": "0.10",
+  "harnessVersion": "0.11",
   "updated": "2026-06-30",
   "description": "Source of truth for the OS harness RAILS: states, kinds, executionContexts, boundary, sequence (the blueprint), chain, environment, governance. Component ROWS live in harness/registry.json; the doctor (governance/enforcement/doctor.mjs) merges the two and checks reality against them. harness/manifest.md is the generated human-readable twin (run harness/render.mjs).",
   "versioning": {
