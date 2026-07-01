@@ -5,6 +5,16 @@
     "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/session-feedback/statusline.mjs\""
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/sandbox/confinement/index.mjs\""
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
