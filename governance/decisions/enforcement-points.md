@@ -26,9 +26,9 @@ manifest merge, not a third gate.
 [`../enforcement/doctor.mjs`](../enforcement/doctor.mjs) (drift / registration, **merge-blocking**)
 and [`../enforcement/governance-check.mjs`](../enforcement/governance-check.mjs) (self-governance,
 ledger integrity, declared workflows, one-owner-per-write-zone), run in
-[`../../.github/workflows.pending/ci.yml`](../../.github/workflows.pending/ci.yml) (relocated;
-see that folder's README — activating Actions needs a workflow-scoped token). This gate's logic
-(doctor + governance-check + structure-check + tests) runs locally regardless.
+[`../../.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (**active** — runs on every
+PR/push to main). This gate's logic (doctor + governance-check + structure-check + tests) also runs
+locally.
 
 ## Gate #2 — the write hooks  (SPECIFIED, NOT BUILT)
 
