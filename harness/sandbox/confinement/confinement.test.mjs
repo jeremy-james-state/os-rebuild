@@ -17,20 +17,29 @@ test('forbidden: a sibling project path is blocked; own repo + system are not', 
   assert.equal(forbidden(join(HOME, '.claude', 'settings.json')), false) // ~/.claude (not under Projects) → allowed
 })
 
+// Hermetic fixtures — inject an explicit home + a root under <home>/Projects/os-rebuild so
+// the sibling / ../-escape / cd verdicts are deterministic on ANY OS and ANY checkout
+// location. (In CI the real checkout is /home/runner/work/… — NOT under ~/Projects — so a
+// test that leaned on the ambient HOME/REPO failed there; injecting home/root fixes it.)
+const H = '/tmp/h'
+const R = join(H, 'Projects', 'os-rebuild')
+const sib = join(H, 'Projects', 'harness', 'execution/tests/root-shape.test.mjs')
+const inRepo = join(R, 'record', 'signals.jsonl')
+
 test('targets: extracts the sibling path from a Bash cd command (the screenshot case)', () => {
-  const t = targets('Bash', { command: `cd ${join(HOME, 'Projects', 'harness')}; node --test execution/tests/root-shape.test.mjs` })
+  const t = targets('Bash', { command: `cd ${join(H, 'Projects', 'harness')}; node --test execution/tests/root-shape.test.mjs` }, undefined, { home: H })
   assert.ok(t.some((p) => p.includes('Projects/harness')))
 })
 
 test('decide: blocks a Bash cd into the Core; allows an in-repo Read', () => {
-  assert.equal(decide({ tool_name: 'Bash', tool_input: { command: `cd ${join(HOME, 'Projects', 'harness')} && node --test` } }).block, true)
-  assert.equal(decide({ tool_name: 'Read', tool_input: { file_path: sibling } }).block, true)
-  assert.equal(decide({ tool_name: 'Read', tool_input: { file_path: mine } }).block, false)
-  assert.equal(decide({ tool_name: 'Bash', tool_input: { command: 'node --test harness/sandbox/tracer/tracer.test.mjs' } }).block, false)
+  assert.equal(decide({ tool_name: 'Bash', tool_input: { command: `cd ${join(H, 'Projects', 'harness')} && node --test` } }, { root: R, home: H }).block, true)
+  assert.equal(decide({ tool_name: 'Read', tool_input: { file_path: sib } }, { root: R, home: H }).block, true)
+  assert.equal(decide({ tool_name: 'Read', tool_input: { file_path: inRepo } }, { root: R, home: H }).block, false)
+  assert.equal(decide({ tool_name: 'Bash', tool_input: { command: 'node --test harness/sandbox/tracer/tracer.test.mjs' } }, { root: R, home: H }).block, false)
 })
 
 test('decide: catches a relative ../ escape into a sibling', () => {
-  assert.equal(decide({ tool_name: 'Bash', tool_input: { command: 'cat ../harness/STATUS.md' }, cwd: REPO }).block, true)
+  assert.equal(decide({ tool_name: 'Bash', tool_input: { command: 'cat ../harness/STATUS.md' }, cwd: R }, { root: R, home: H }).block, true)
 })
 
 test('decide: fails open on an unknown/empty payload (never wedges a session)', () => {

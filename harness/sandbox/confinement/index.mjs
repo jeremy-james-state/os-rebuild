@@ -28,35 +28,57 @@ const PROJECTS = resolve(HOME, 'Projects')
 
 const under = (p, root) => { const r = resolve(p); return r === root || r.startsWith(root + sep) }
 
-/** A path is forbidden if it lives inside ~/Projects but OUTSIDE os-rebuild — i.e. a sibling project. */
-export function forbidden(p, { cwd } = {}) {
+/**
+ * A path is forbidden if it lives inside <home>/Projects but OUTSIDE os-rebuild — i.e. a
+ * sibling project. `root`/`home` are injectable so a test can pin them (e.g. home=/tmp/h,
+ * root=<home>/Projects/os-rebuild) and get a deterministic verdict on any OS/checkout —
+ * the ambient HOME and checkout location no longer leak in. Defaults preserve LIVE behavior:
+ * root=REPO, home=HOME, projects=resolve(home,'Projects').
+ */
+export function forbidden(p, { cwd, root = REPO, home = HOME, projects } = {}) {
   if (!p) return false
-  const abs = p.startsWith('~') ? p.replace(/^~/, HOME) : (p.startsWith('/') ? p : resolve(cwd || REPO, p))
-  return under(abs, PROJECTS) && !under(abs, REPO)
+  const proj = projects || resolve(home, 'Projects')
+  const abs = p.startsWith('~') ? p.replace(/^~/, home) : (p.startsWith('/') ? p : resolve(cwd || root, p))
+  return under(abs, proj) && !under(abs, root)
 }
 
-/** Extract candidate target paths from a tool call. */
-export function targets(tool, input = {}, cwd) {
+/**
+ * Extract candidate target paths from a tool call. The Bash absolute-path matcher keys off
+ * `<home>/Projects/…`, so `home` is injectable to keep it hermetic (defaults to HOME → live
+ * behavior). Relative `../` tokens and `~/Projects/…` tokens are matched independently of home.
+ */
+export function targets(tool, input = {}, cwd, { home = HOME } = {}) {
   if (['Write', 'Edit', 'Read', 'NotebookEdit'].includes(tool)) return [input.file_path].filter(Boolean)
   if (['Grep', 'Glob'].includes(tool)) return [input.path].filter(Boolean)
   if (tool === 'Bash') {
     const cmd = String(input.command || '')
-    // absolute Projects paths, ~/Projects paths, and relative tokens containing .. (possible escapes)
-    const abs = cmd.match(/(?:\/Users\/[^\s'"]*\/Projects\/[^\s'"]+|~\/Projects\/[^\s'"]+)/g) || []
+    // absolute <home>/Projects paths, ~/Projects paths, and relative tokens containing .. (possible escapes)
+    const homeProj = `${home}/Projects/`
+    const abs = []
+    const absRe = /(?:\/[^\s'"]*\/Projects\/[^\s'"]+|~\/Projects\/[^\s'"]+)/g
+    let m
+    while ((m = absRe.exec(cmd))) {
+      const tok = m[0]
+      if (tok.startsWith('~/Projects/') || tok.startsWith(homeProj)) abs.push(tok)
+    }
     const rel = (cmd.match(/(?:^|\s)(\.\.\/[^\s'"]+|[^\s'"]*\/\.\.\/[^\s'"]+)/g) || []).map((s) => s.trim())
     return [...abs, ...rel].map((s) => s.replace(/[;:,)'"&|]+$/, '')) // strip trailing shell punctuation
   }
   return []
 }
 
-/** Decide on a payload. Returns { block, reason, bad }. */
-export function decide(payload = {}) {
+/**
+ * Decide on a payload. Returns { block, reason, bad }. `{ root, home }` are injectable so a
+ * test is hermetic (does not depend on the ambient HOME / checkout location); defaults
+ * (root=REPO, home=HOME) preserve the LIVE behavior byte-for-byte.
+ */
+export function decide(payload = {}, { root = REPO, home = HOME } = {}) {
   const tool = payload.tool_name || ''
   const input = payload.tool_input || {}
-  const cwd = payload.cwd || REPO
-  const bad = targets(tool, input, cwd).filter((p) => forbidden(p, { cwd }))
+  const cwd = payload.cwd || root
+  const bad = targets(tool, input, cwd, { home }).filter((p) => forbidden(p, { cwd, root, home }))
   if (bad.length) {
-    return { block: true, bad, reason: `confinement: this session is scoped to ${REPO}. Blocked ${tool} targeting a sibling project:\n` + bad.map((b) => `   • ${b}`).join('\n') }
+    return { block: true, bad, reason: `confinement: this session is scoped to ${root}. Blocked ${tool} targeting a sibling project:\n` + bad.map((b) => `   • ${b}`).join('\n') }
   }
   return { block: false }
 }

@@ -202,6 +202,23 @@ test('checkVersionBumpOnChange: only CHANGELOG.md changed (generated) is not dri
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
 
+test('checkVersionBumpOnChange: only a *.test.mjs changed (test-only) is not drift; an index.mjs change still is', () => {
+  const { root, g } = gitRepoWithRelease()
+  try {
+    // Test-only change since the tag → NOT flagged (tests aren't shipped behavior).
+    writeFileSync(join(root, 'harness/comp/comp.test.mjs'), 'import "node:test"\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'add test')
+    const manifest = { components: [{ id: 'comp', path: 'harness/comp/', version: '0.1.0' }] }
+    assert.deepEqual(checkVersionBumpOnChange(manifest, root), [], 'a *.test.mjs-only change must not force a bump')
+    // Now change the index.mjs (shipped behavior) without bumping → still flagged.
+    writeFileSync(join(root, 'harness/comp/index.mjs'), 'export const v = 2\n')
+    g('add', '-A'); g('commit', '-q', '-m', 'change index')
+    const f = checkVersionBumpOnChange(manifest, root)
+    assert.deepEqual(codes(f), ['version-bump-required'])
+    assert.equal(f[0].severity, 'ERROR')
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})
+
 test('checkVersionBumpOnChange: a component absent from the release pins is skipped', () => {
   const { root, g } = gitRepoWithRelease()
   try {

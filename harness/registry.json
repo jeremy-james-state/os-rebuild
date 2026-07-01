@@ -894,7 +894,7 @@
       "flags": [
         "new in this pass; not yet wired into pre-push"
       ],
-      "version": "0.2.0",
+      "version": "0.3.0",
       "versions": [
         {
           "version": "0.1.0",
@@ -905,6 +905,11 @@
           "version": "0.2.0",
           "date": "2026-07-01",
           "change": "checkVersionBumpOnChange now diffs the working tree (not HEAD) so it fires at pre-commit verification; also reflects the sandbox→candidate guard change."
+        },
+        {
+          "version": "0.3.0",
+          "date": "2026-07-01",
+          "change": "checkVersionBumpOnChange now also excludes *.test.mjs from the substantive-change filter — a test-only change no longer forces a component version bump (version is contract-keyed to shipped behavior, not test coverage)."
         }
       ]
     },
@@ -1240,7 +1245,7 @@
       "tests": "harness/sandbox/confinement/confinement.test.mjs",
       "dependsOn": [],
       "owner": "harness",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "versions": [
         {
           "version": "0.1.0",
@@ -1251,6 +1256,11 @@
           "version": "0.2.0",
           "date": "2026-07-01",
           "change": "Add dormant fail-closed decideStrict allowlist + Tier-1 harness.sb (live decide() unchanged)."
+        },
+        {
+          "version": "0.3.0",
+          "date": "2026-07-01",
+          "change": "Make forbidden/targets/decide injectable via optional {root,home} so tests are hermetic (no dependency on ambient HOME / checkout location); live main() + decideStrict unchanged, defaults preserve behavior."
         }
       ]
     },

@@ -475,7 +475,10 @@ export function checkVersionBumpOnChange(manifest, root) {
     } catch { return [] } // any diff error → fail-open for the whole check
     const p = c.path.replace(/\/+$/, '')
     const changelogPath = `${p}/CHANGELOG.md`
-    const substantive = changed.filter(f => f !== changelogPath)
+    // "Substantive" = shipped behavior. Exclude the generated CHANGELOG.md and any *.test.mjs:
+    // a test-only change doesn't alter what the component does, so it must not force a version
+    // bump (the version is contract-keyed to behavior, not to test coverage).
+    const substantive = changed.filter(f => f !== changelogPath && !f.endsWith('.test.mjs'))
     if (substantive.length && c.version === pins[c.id]) {
       out.push(finding('ERROR', 'version-bump-required',
         `Component '${c.id}' changed since ${tag} but its version is unchanged (still ${c.version}). ` +
