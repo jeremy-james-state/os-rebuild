@@ -20,10 +20,24 @@
  * Zero-dependency (global fetch). Idempotent (merge-duplicates on id). Truth stays in git;
  * Supabase is only a rebuildable projection.
  */
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { read, STREAMS } from '../harness/sandbox/loop-store/index.mjs'
 
 const URL = process.env.OS_SUPABASE_URL || 'https://pirwnoingtczdamdirqw.supabase.co'
-const KEY = process.env.OS_SUPABASE_KEY
+// Key resolution: env var first, then a gitignored local file (<repo>/.supabase-key), so the
+// automated LOCAL sync needs no env fiddling — drop the key in that file and it just works.
+// The file is gitignored and never committed.
+function resolveKey() {
+  if (process.env.OS_SUPABASE_KEY) return process.env.OS_SUPABASE_KEY.trim()
+  try {
+    const f = fileURLToPath(new URL('../.supabase-key', import.meta.url))
+    const k = readFileSync(f, 'utf8').trim()
+    if (k) return k
+  } catch { /* no key file — fine, we skip below */ }
+  return null
+}
+const KEY = resolveKey()
 
 function toRow(r) {
   return {
@@ -39,7 +53,7 @@ function toRow(r) {
 }
 
 async function main() {
-  if (!KEY) { console.error('error: set OS_SUPABASE_KEY (a service_role key) — see the header.'); process.exit(2) }
+  if (!KEY) { console.log('sync: no OS_SUPABASE_KEY (env or <repo>/.supabase-key) — skipping; the dashboard sync stays idle until a key is provided.'); process.exit(0) }
   const rows = []
   for (const s of STREAMS) for (const r of read(s).records) rows.push(toRow(r))
   if (!rows.length) { console.log('nothing to sync (no records yet).'); return }
