@@ -34,11 +34,14 @@ export const HANDLERS = {
   // The doctor is a real, wired component — run the drift-check for real. spawnSync (not
   // execFileSync) with a hard timeout: a non-zero exit (doctor is fail-closed on drift) still
   // yields parseable stdout, so the dispatch is 'completed' and the drift detail rides in the
-  // result — the visible outcome no longer flips completed↔failed on repo state. A hang hits
+  // result — the visible outcome no longer flips completed↔failed on repo state. The timeout is
+  // a fail-open guard against a genuine HANG (30s), not a cutoff for a legitimate 1–7s doctor
+  // run — under full-suite/CI parallelism the nested subprocess can spike past a tight budget,
+  // which would flip the outcome to 'failed' and drop the os: block decision. A real hang hits
   // the timeout → r.error → 'failed', never blocking the turn.
   doctor: () => {
     const r = spawnSync(process.execPath, [join(REPO_ROOT, 'governance/enforcement/doctor.mjs'), '--json'],
-      { encoding: 'utf8', cwd: REPO_ROOT, timeout: 5000 })
+      { encoding: 'utf8', cwd: REPO_ROOT, timeout: 30000 })
     if (r.error) throw r.error
     let findings = []
     try { ({ findings } = JSON.parse(r.stdout || '{"findings":[]}')) } catch { findings = [] }

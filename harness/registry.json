@@ -333,12 +333,17 @@
         "loop-store"
       ],
       "owner": "harness",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "versions": [
         {
           "version": "0.1.0",
           "date": "2026-07-01",
           "change": "Initial version (seeded at P1-a)."
+        },
+        {
+          "version": "0.1.1",
+          "date": "2026-07-01",
+          "change": "Raise doctor-dispatch spawnSync timeout 5s→30s — the 5s fail-open guard cut off a legitimate 1–7s doctor under load (flaky os: block decision)."
         }
       ]
     },
