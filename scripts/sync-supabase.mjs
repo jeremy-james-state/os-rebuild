@@ -29,13 +29,12 @@ const URL = process.env.OS_SUPABASE_URL || 'https://pirwnoingtczdamdirqw.supabas
 // Key resolution: env var first, then a gitignored local file (<repo>/.supabase-key), so the
 // automated LOCAL sync needs no env fiddling — drop the key in that file and it just works.
 // The file is gitignored and never committed.
-function resolveKey() {
+export function resolveKey({ keyFile = join(dirname(fileURLToPath(import.meta.url)), '..', '.supabase-key') } = {}) {
   if (process.env.OS_SUPABASE_KEY) return process.env.OS_SUPABASE_KEY.trim()
   try {
     // NB: `const URL` above shadows the global URL constructor, so compute the path via
     // node:path (not `new URL`) to avoid a "URL is not a constructor" throw.
-    const f = join(dirname(fileURLToPath(import.meta.url)), '..', '.supabase-key')
-    const k = readFileSync(f, 'utf8').trim()
+    const k = readFileSync(keyFile, 'utf8').trim()
     if (k) return k
   } catch { /* no key file — fine, we skip below */ }
   return null
@@ -73,4 +72,8 @@ async function main() {
   if (!res.ok) { console.error(`sync failed: HTTP ${res.status} ${await res.text()}`); process.exit(1) }
   console.log(`synced ${rows.length} events → ${URL}/rest/v1/osr_loop_events`)
 }
-main().catch((e) => { console.error('sync error:', e.message); process.exit(1) })
+// Only run when invoked directly as a CLI — so importing this module (e.g. to test resolveKey)
+// does NOT fire the live sync. Mirrors data-lock.mjs's entrypoint guard.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => { console.error('sync error:', e.message); process.exit(1) })
+}

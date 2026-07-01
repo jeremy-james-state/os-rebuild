@@ -29,4 +29,8 @@ jobs:
       - name: No ghost agent
         run: node governance/enforcement/no-ghost-agent.mjs
       - name: Harness + governance tests
-        run: node --test $(find harness governance -name '*.test.mjs')
+        # --test-concurrency=1: run test files serially. The session-feedback CLI test spawns the
+        # real doctor under the orchestrator's hard 5s spawnSync timeout; under parallel load on a
+        # 2-core CI runner that doctor exceeds 5s, the loop fails-open to 'failed' (by design) and
+        # the block-decision assertion flakes. Serial keeps the doctor under budget deterministically.
+        run: node --test --test-concurrency=1 $(find harness governance scripts -name '*.test.mjs')
