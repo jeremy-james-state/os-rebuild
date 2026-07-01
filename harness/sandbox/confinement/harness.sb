@@ -1,0 +1,76 @@
+;; harness.sb — Tier-1 confinement seatbelt profile  (SCAFFOLD / REFERENCE — pending platform wire-in)
+;;
+;; WHAT THIS IS
+;;   The REAL, bypass-proof confinement guarantee for a session scoped to os-rebuild.
+;;   Unlike the interpreter-tier PreToolUse hook (index.mjs — decide() live / decideStrict()
+;;   dormant), this profile constrains filesystem writes at the macOS *syscall* level via
+;;   Seatbelt (`sandbox-exec`). It is tool-agnostic: it confines Bash, MCP servers, node
+;;   subprocesses, and every other process identically. No string trick, variable, cd-chain,
+;;   or symlink can escape it — the kernel enforces the policy, not a parser.
+;;   This is the "Tier 1" of the confinement-sandbox design (spec §4):
+;;     docs/superpowers/specs/2026-07-01-confinement-sandbox-design.md
+;;   Mirrors the harness Core's claude-safe / harness.sb the index.mjs docstring references.
+;;
+;; HOW IT WOULD WRAP THE SESSION
+;;   sandbox-exec -f harness/sandbox/confinement/harness.sb -D REPO="$PWD" -D HOME="$HOME" <command>
+;;   i.e. the Claude Code session (or the shell that launches it) runs *inside* this profile,
+;;   so every descendant process inherits the write fence. The -D parameters bind REPO to the
+;;   os-rebuild root and HOME to the user's home so the allow-rules below can be written
+;;   relative to them.
+;;
+;; STATUS: SCAFFOLD. Wiring this into the actual session launch is a PLATFORM step (pending) —
+;;   it needs a launcher/wrapper decision (see spec §8 open questions) and is NOT executed by
+;;   any code in this repo today. Reads are intentionally NOT denied here (spec §3 non-goal);
+;;   this profile is a *write* fence. A later revision may add read confinement.
+;;
+;; SCOPE OF THE GUARANTEE: filesystem WRITES only. Deny-by-default; allow writes solely under
+;;   REPO plus the minimal system paths enumerated below. Read access is left open.
+
+(version 1)
+
+;; ── Default posture ─────────────────────────────────────────────────────────
+;; Allow everything by default, then subtract write permission. We start permissive on
+;; non-write operations (reads, process exec, network — governed by other layers, see
+;; environment.json L2_environment network-policy) and make WRITES deny-by-default.
+(allow default)
+
+;; Deny ALL filesystem writes up front; the (allow file-write* ...) rules below re-grant
+;; the minimal writable surface. This is the deny-by-default core of the fence.
+(deny file-write*)
+
+;; ── Allowed writable surface (minimal, enumerated) ──────────────────────────
+
+;; 1. The repo itself — the whole point. All in-repo work (edits, record/ appends,
+;;    state/*.db, build output) is permitted.
+(allow file-write*
+  (subpath (param "REPO")))
+
+;; 2. Claude Code state/config. The session must be able to persist its own settings,
+;;    todos, projects, and shell snapshots.
+(allow file-write*
+  (subpath (string-append (param "HOME") "/.claude")))
+
+;; 3. Ephemeral scratch. Standard temp dirs used by node, git, and shell heredocs.
+(allow file-write*
+  (subpath "/tmp")
+  (subpath "/private/tmp")
+  (subpath "/private/var/folders")        ; macOS per-user TMPDIR (getconf DARWIN_USER_TEMP_DIR)
+  (subpath "/var/folders"))
+
+;; 4. Tool caches node/git/npm need to write during normal operation. Kept minimal; add
+;;    only paths a wired session is observed to require, never a blanket HOME grant.
+(allow file-write*
+  (subpath (string-append (param "HOME") "/.npm"))
+  (subpath (string-append (param "HOME") "/.cache"))
+  (subpath (string-append (param "HOME") "/.config/git"))
+  (subpath (string-append (param "HOME") "/Library/Caches")))
+
+;; 5. Standard device/pseudo-file writes (ttys, /dev/null, stdout/stderr fds). Without these
+;;    ordinary process I/O fails.
+(allow file-write*
+  (subpath "/dev"))
+
+;; Everything else — /etc, ~/Projects/<siblings>, ~/ home root, arbitrary absolute paths —
+;; remains DENIED by the (deny file-write*) above. Symlink escapes are moot: Seatbelt
+;; evaluates the resolved (canonical) path, so a repo-internal symlink pointing outside REPO
+;; still lands on the denied real path.
