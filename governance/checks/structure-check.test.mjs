@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { test } from 'node:test'
+
+import { runStructureCheck } from './structure-check.mjs'
+
+function tmpRoot() { return mkdtempSync(join(tmpdir(), 'structure-check-')) }
+
+function makeCanonicalRoot(root) {
+  for (const dir of ['harness', 'apps', 'skills', 'governance', 'record', 'docs', 'state', 'web', '.github', '.claude', '.system']) {
+    mkdirSync(join(root, dir), { recursive: true })
+  }
+  writeFileSync(join(root, 'docs', 'OS-INDEX.md'), '# OS Index\n')
+}
+
+test('runStructureCheck: clean schema has no findings', () => {
+  const root = tmpRoot()
+  try {
+    makeCanonicalRoot(root)
+    assert.deepEqual(runStructureCheck({ root }).findings, [])
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('runStructureCheck: unexpected top-level dir is an ERROR (fail-closed)', () => {
+  const root = tmpRoot()
+  try {
+    makeCanonicalRoot(root)
+    mkdirSync(join(root, 'unexpected-tier'))
+    const findings = runStructureCheck({ root }).findings
+    assert.ok(findings.some((f) => f.severity === 'ERROR' && f.code === 'STRUCTURE_DRIFT' && f.message.includes('unexpected-tier/')))
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('runStructureCheck: a missing docs/OS-INDEX.md emits a WARN', () => {
+  const root = tmpRoot()
+  try {
+    makeCanonicalRoot(root)
+    rmSync(join(root, 'docs', 'OS-INDEX.md'))
+    const findings = runStructureCheck({ root }).findings
+    assert.ok(findings.some((f) => f.severity === 'WARN' && f.message.includes('OS-INDEX.md')))
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})

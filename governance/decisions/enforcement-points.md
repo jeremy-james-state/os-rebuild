@@ -23,8 +23,8 @@ manifest merge, not a third gate.
 ## Gate #1 — the commit gate  (BUILT)
 
 `doctor`-green + a human merge decide what enters the pinned checkout. Implemented:
-[`../enforcement/doctor.mjs`](../enforcement/doctor.mjs) (drift / registration, **merge-blocking**)
-and [`../enforcement/governance-check.mjs`](../enforcement/governance-check.mjs) (self-governance,
+[`../enforcement/doctor.mjs`](../checks/doctor.mjs) (drift / registration, **merge-blocking**)
+and [`../enforcement/governance-check.mjs`](../checks/governance-check.mjs) (self-governance,
 ledger integrity, declared workflows, one-owner-per-write-zone), run in
 [`../../.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (**active** — runs on every
 PR/push to main). This gate's logic (doctor + governance-check + structure-check + tests) also runs

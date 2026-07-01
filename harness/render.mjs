@@ -119,7 +119,7 @@ export function renderIndex(components) {
   const L = []
   L.push('# OS Harness — Component Index (generated)')
   L.push('')
-  L.push('> Generated from `harness/registry.json` by `harness/render.mjs`.')
+  L.push('> Generated from `harness/manifest.json` by `harness/render.mjs`.')
   L.push('> Do not edit by hand — edit the JSON and run `node harness/render.mjs --index`.')
   L.push('')
   const comps = components || []
@@ -151,7 +151,7 @@ export function renderChangelog(component) {
   const id = (component && component.id) || '?'
   L.push(`# ${id} — changelog (generated)`)
   L.push('')
-  L.push('> Generated from `harness/registry.json` by `harness/render.mjs`.')
+  L.push('> Generated from `harness/manifest.json` by `harness/render.mjs`.')
   L.push('> Do not edit by hand — edit the JSON and run `node harness/render.mjs --changelogs`.')
   L.push('')
   L.push(row(['Version', 'Date', 'Change']))
@@ -165,8 +165,8 @@ export function renderChangelog(component) {
 
 function main() {
   const manifest = JSON.parse(readFileSync(join(HERE, 'manifest.json'), 'utf8'))
-  const registry = JSON.parse(readFileSync(join(HERE, 'registry.json'), 'utf8'))
-  const components = registry.components || []
+  const manifest_ = JSON.parse(readFileSync(join(HERE, 'manifest.json'), 'utf8'))
+  const components = manifest_.components || []
   const ROOT = resolve(HERE, '..')
   const args = process.argv.slice(2)
 

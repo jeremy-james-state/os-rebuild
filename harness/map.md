@@ -2,7 +2,7 @@
 
 The running code. **Folders are types; promotion state is a manifest field, not a
 folder.** This map is a pointer — the system of record is
-[`manifest.json`](manifest.json) (validated by `governance/enforcement/doctor.mjs`).
+[`manifest.json`](manifest.json) (validated by `governance/checks/doctor.mjs`).
 
 ## Type folders
 | Folder | Type | Fires | What |
@@ -19,5 +19,5 @@ folder.** This map is a pointer — the system of record is
 - `state` ∈ `production | staging | sandbox | planned | quarantined | retired` — lives
   in `manifest.json`. Production never depends on sandbox/quarantined/planned (doctor-enforced).
 - The enforcement spine (doctor, governance-check, structure-check) lives in
-  `governance/enforcement/`, not here — by settled decision.
+  `governance/checks/`, not here — by settled decision.
 - Versioning: `harnessVersion` (semver) + [`CHANGELOG.md`](CHANGELOG.md).

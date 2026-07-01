@@ -33,7 +33,7 @@ check.** The ladder, strongest first:
 |---|:--:|---|
 | **Per-run** | ✅ | A hook makes it true on **every relevant run**; cannot be skipped. *Requires a hook — this repo has none yet.* |
 | **Gated at merge** | 🔶 | Runs automatically on every PR (CI / CODEOWNERS). Catches it at the merge boundary, not during a session. |
-| **On-demand** | 🔁 | The mechanism exists but only when someone invokes it (e.g. `node governance/enforcement/doctor.mjs`). |
+| **On-demand** | 🔁 | The mechanism exists but only when someone invokes it (e.g. `node governance/checks/doctor.mjs`). |
 | **By hand** | 🟡 | Goodwill — a human follows the rule. |
 | **Defined only** | ⛔ | Written, no mechanism. |
 | **Not defined** | — | — |
@@ -50,7 +50,7 @@ not something we have. Calling that out is the point of this page.
 | # | Control | Defined | Enforced | Where |
 |---|---|:--:|:--:|---|
 | G1 | **Boundary** (what is/isn't the harness) | ✅ | 🔶/🔁 | `docs/BOUNDARY.md`; doctor knows it, but only on PR / on-demand |
-| G2 | **Drift-check / doctor** (the structural test) | ✅ | 🔶/🔁 | `governance/enforcement/doctor.mjs` — GREEN, but runs in CI / by hand, **not every run** |
+| G2 | **Drift-check / doctor** (the structural test) | ✅ | 🔶/🔁 | `governance/checks/doctor.mjs` — GREEN, but runs in CI / by hand, **not every run** |
 | G3 | **Manifest + MD twin** (machine-readable shape, versioned) | ✅ | 🔶 | `harness/manifest.json` + `.md`, `CHANGELOG.md` (md-sync checked in CI) |
 | G4 | **CI merge gate** (doctor + tests on every PR) | ✅ | 🔶 | `.github/workflows/ci.yml` — the strongest tier we have |
 | G5 | **CODEOWNERS** (owner review at merge) | ✅ | 🔶 | `.github/CODEOWNERS` — *needs branch protection ON to bite* |

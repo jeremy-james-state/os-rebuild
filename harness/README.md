@@ -25,11 +25,11 @@ The constitution that explains all of this in prose:
 ## Commands
 
 ```sh
-node governance/enforcement/doctor.mjs              # check for drift (exit 1 = drift)
-node governance/enforcement/doctor.mjs --inventory  # list components by state
-node governance/enforcement/doctor.mjs --json       # machine-readable findings
+node governance/checks/doctor.mjs              # check for drift (exit 1 = drift)
+node governance/checks/doctor.mjs --inventory  # list components by state
+node governance/checks/doctor.mjs --json       # machine-readable findings
 node harness/render.mjs --write      # regenerate manifest.md
-node --test governance/enforcement/doctor.test.mjs  # run the tests
+node --test governance/checks/doctor.test.mjs  # run the tests
 ```
 
 ## Promotion states

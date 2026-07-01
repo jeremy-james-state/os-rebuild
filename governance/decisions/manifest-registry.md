@@ -58,3 +58,13 @@ contexts) and `component-model.md`.
 - harness shape (instances-vs-folders) = **provisional (revisit)**.
 
 Basis: conversation 2026-06-30 + PR #27. Owner: `ov`.
+
+---
+
+## Addendum (os-reshape P1, 2026-07-01)
+
+The split described above was RETIRED at the os-reshape P1 merge: `registry.json` was
+merged INTO `harness/manifest.json` (one spine file — rails + the full component census,
+union schema, `additionalProperties:false`). The doctor, tracer, render, no-ghost and
+schema-validate now read the single file. This document is kept as the decision history
+for why the split existed. Ledger: `gov-2026-07-01-043`.

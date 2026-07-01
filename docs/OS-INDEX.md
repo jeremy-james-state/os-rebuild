@@ -18,7 +18,7 @@ four tiers and where each thing lives. `structure-check` warns if it goes missin
 
 - **Component** — contract-keyed semver, in each `registry.json` row (`version` + `versions[]`).
 - **Harness release** — `harnessVersion` (`generation.release`), pins the component set in
-  [`harness/releases/`](../harness/releases); the git tag is the capture.
+  [`.system/releases/`](../harness/releases); the git tag is the capture.
 - **OS architecture** — [`governance/architecture.json`](../governance/architecture.json), the
   outermost/rarest; bumped only on a tier / boundary / data-schema-shape change.
 
@@ -29,5 +29,5 @@ four tiers and where each thing lives. `structure-check` warns if it goes missin
 - **What components exist right now?** → [`harness/index.md`](../harness/index.md) (generated)
 - **What is a component?** → [`governance/decisions/component-model.md`](../governance/decisions/component-model.md)
 - **What's a candidate vs admitted?** → [`governance/candidates.md`](../governance/candidates.md) · [`governance/rules/harness-admission.md`](../governance/rules/harness-admission.md)
-- **The signal loop** → [`harness/sandbox/LOOP.md`](../harness/sandbox/LOOP.md)
+- **The signal loop** → [`harness/loop/LOOP.md`](../harness/loop/LOOP.md)
 - **Data shapes** → `record/SCHEMA.md`

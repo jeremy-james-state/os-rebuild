@@ -10,7 +10,7 @@ on:
   push:
     paths:
       - 'record/signals.jsonl'
-      - 'harness/sandbox/signal-ledger/sync.mjs'
+      - 'harness/loop/signal-ledger/sync.mjs'
 
 # Avoid pile-ups when many turns push in quick succession: keep only the latest run per ref.
 concurrency:
@@ -29,4 +29,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://pirwnoingtczdamdirqw.supabase.co' }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: node harness/sandbox/signal-ledger/sync.mjs
+        run: node harness/loop/signal-ledger/sync.mjs
