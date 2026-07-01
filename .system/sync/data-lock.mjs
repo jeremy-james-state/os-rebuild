@@ -18,12 +18,12 @@
  */
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import {
+import { realpathSync,
   existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, chmodSync,
   appendFileSync, unlinkSync, readdirSync, statSync, rmSync,
 } from 'node:fs'
 import { dirname, join, resolve, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_ROOT = resolve(HERE, '..', '..')
@@ -137,4 +137,16 @@ function main() {
     process.exitCode = 2
   }
 }
-if (import.meta.url === `file://${process.argv[1]}`) main()
+
+/**
+ * CLI main-guard, symlink-proof: node resolves import.meta.url to the REAL
+ * path, while argv[1] may arrive through a symlink (.system/releases/current,
+ * macOS /var, a spaced path). Comparing unresolved forms silently skips main()
+ * — exit 0, no output — the exact silent-failure class caught twice in the
+ * os-reshape (P0 rig, P2 sealed boot). Realpath both sides; any error → false.
+ */
+function cliInvoked(metaUrl) {
+  try { return !!process.argv[1] && metaUrl === pathToFileURL(realpathSync(process.argv[1])).href } catch { return false }
+}
+
+if (cliInvoked(import.meta.url)) main()
