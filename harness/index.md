@@ -9,7 +9,7 @@
 | --- | --- | --- | --- | --- | --- |
 | auto-mode | 0.1.0 | planned | runtime | `harness/orchestrators/auto-mode/` | Away-work runner: select reversible/valuable units -> playback -> runtime select -> fan out thin workers under a concurrency cap |
 | builder | 0.1.0 | planned | engine-agent | `harness/orchestrators/builder/` | Coordinates plan execution: build-gate -> provision -> topo-sort -> per-step execute/verify/retry/reframe/escalate -> acceptance |
-| orchestrator | 0.1.0 | candidate | router | `harness/sandbox/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
+| orchestrator | 0.1.1 | candidate | router | `harness/sandbox/orchestrator/` | Routes each step to the cheapest sufficient execution tier (script/subagent/model); logs audit trail; loop/stop control |
 | overseer | 0.1.0 | planned | governance | `harness/orchestrators/overseer/` | Management agent: scheduling (DAG/critical path), determinism audit, scope-creep, convergence, snapshot |
 | pipeline | 0.1.0 | candidate | runtime | `harness/sandbox/pipeline/` | Deterministic clarify->scope->plan->build->test->deploy chain with per-stage gates, budget, and chain-run persistence |
 | router | 0.1.0 | staging | orchestrator | `harness/orchestrators/router.mjs` | Minimal orchestrator: classify a signal, route it to a component, record a terminal outcome (the first wired path) |
