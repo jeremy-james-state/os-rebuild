@@ -117,12 +117,12 @@ test('G6 [fault-injected]: substantive change without a version bump → doctor 
   try {
     // baseline = the HIGHEST release (proper two-part numeric compare — a
     // parseFloat sort ranks 0.9 above 0.14 and picks a stale, eroding pool)
-    const rels = readdirSync(join(copy, 'harness/releases')).filter((f) => /^\d+\.\d+\.json$/.test(f))
+    const rels = readdirSync(join(copy, '.system/releases')).filter((f) => /^\d+\.\d+\.json$/.test(f))
       .sort((a, b) => {
         const pa = a.split('.').map(Number), pb = b.split('.').map(Number)
         return pa[0] - pb[0] || pa[1] - pb[1]
       })
-    const pins = JSON.parse(readFileSync(join(copy, 'harness/releases', rels.at(-1)), 'utf8')).pins || {}
+    const pins = JSON.parse(readFileSync(join(copy, '.system/releases', rels.at(-1)), 'utf8')).pins || {}
     const census = JSON.parse(readFileSync(join(copy, PATHS.manifest), 'utf8')).components || []
     const target = census.find((c) => c.id in pins && c.version === pins[c.id] && c.path && existsSync(join(copy, c.path, 'index.mjs')))
     assert.ok(target, `no pinned on-disk component found to probe in ${rels.at(-1)} — rig assumption broken`)
