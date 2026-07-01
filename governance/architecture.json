@@ -1,0 +1,20 @@
+{
+  "architectureVersion": "1.0",
+  "updated": "2026-07-01",
+  "description": "The OS architecture version — the outermost, slowest of the three version spaces (component semver < harness generation.release < OS architecture). It versions the SHAPE of the system, not its files or components: the tier structure, the harness boundary, and the data-layer schema shape. Bumped ONLY on such a shape change, and always with a governance-ledger entry. Governed by governance/enforcement/governance-check.mjs; NEVER by the doctor (which governs the harness, not the OS around it).",
+  "boundary": "docs/BOUNDARY.md",
+  "tiers": [
+    "method — docs/",
+    "governance — governance/",
+    "harness — harness/",
+    "data — record/ + state/"
+  ],
+  "bumpWhen": [
+    "a top-level tier is added or removed",
+    "the harness boundary (docs/BOUNDARY.md) moves",
+    "the data-layer schema SHAPE changes (record/SCHEMA.md)"
+  ],
+  "history": [
+    { "version": "1.0", "date": "2026-07-01", "change": "Locked four-tier architecture around the harness/ boundary (see docs/BOUNDARY.md, locked 2026-06-30); OS architecture version space introduced." }
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "registryVersion": "1.0",
+  "registryVersion": "1.1",
   "updated": "2026-06-30",
   "description": "Component ROWS — the system of record for the OS harness. The rails (states, kinds, executionContexts, boundary, sequence, chain, environment, governance) live in harness/manifest.json. The doctor + render merge the two. Per-component contract.json attaches on promotion (deferred while components are state=planned). Validated by harness/registry.schema.json.",
   "components": [
@@ -17,7 +17,15 @@
       "tests": "local-tracker/tagger.test.mjs",
       "dependsOn": [],
       "owner": "harness",
-      "evidence": "Deterministic heuristic; the 'signal extractor' the chain begins with"
+      "evidence": "Deterministic heuristic; the 'signal extractor' the chain begins with",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "clarify-gate",
@@ -32,7 +40,15 @@
       ],
       "tests": "local-tracker/clarify-gate.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "clarifier",
@@ -54,6 +70,14 @@
       "owner": "harness",
       "flags": [
         "two meanings stores (clarifier.db vs confirmed-meanings.db) pending unification"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -72,7 +96,15 @@
       "dependsOn": [
         "clarifier"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "planner",
@@ -90,7 +122,15 @@
       "dependsOn": [
         "scoper"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "builder",
@@ -111,7 +151,15 @@
         "verifier",
         "provisioner"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "executor",
@@ -129,7 +177,15 @@
       "dependsOn": [
         "build-templates"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "build-templates",
@@ -145,7 +201,15 @@
       ],
       "tests": "build-templates/build-templates.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "verifier",
@@ -162,7 +226,15 @@
       ],
       "tests": "verifier/verifier.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "tester",
@@ -180,7 +252,15 @@
       "dependsOn": [
         "verifier"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "deployer",
@@ -199,6 +279,14 @@
       "owner": "harness",
       "flags": [
         "built but not wired into a live flow; no formal Deploy stage contract yet"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -216,6 +304,14 @@
       "owner": "harness",
       "flags": [
         "not yet called by Builder"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -236,7 +332,15 @@
         "tracer",
         "loop-store"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "route",
@@ -251,7 +355,15 @@
       ],
       "tests": "local-tracker/route.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "decomposer",
@@ -268,7 +380,15 @@
       "dependsOn": [
         "clarify-gate"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "overseer",
@@ -283,7 +403,15 @@
       ],
       "tests": "overseer/overseer.test.mjs (2032 lines)",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "local-tracker-server",
@@ -300,7 +428,15 @@
         "reducer",
         "overseer"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "store",
@@ -315,7 +451,15 @@
       ],
       "tests": "local-tracker/store.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "reducer",
@@ -332,7 +476,15 @@
       "dependsOn": [
         "store"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "pipeline",
@@ -353,7 +505,15 @@
         "builder",
         "tester"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "auto-mode",
@@ -375,6 +535,14 @@
       "owner": "harness",
       "flags": [
         "approve-mode trusted; tool-use execution trust still pending (Gate B)"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -391,7 +559,15 @@
       ],
       "tests": "context-window/*.test.mjs (4 files)",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "decision-enforcer",
@@ -414,6 +590,14 @@
       "owner": "harness",
       "flags": [
         "only fires if core.hooksPath is configured; not configured in fresh clones / cloud"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -430,7 +614,15 @@
       ],
       "tests": "overseer/session-governor.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "template-conformance",
@@ -445,7 +637,15 @@
       ],
       "tests": "overseer/template-conformance.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "chain-state-attest",
@@ -460,7 +660,15 @@
       ],
       "tests": "overseer/chain-state-attest.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "write-branch-audit",
@@ -477,7 +685,15 @@
       "dependsOn": [
         "session-governor"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "repo-hygiene",
@@ -490,7 +706,15 @@
       "wiredBy": [],
       "tests": "overseer/repo-hygiene.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "approval-runner",
@@ -511,6 +735,14 @@
       "owner": "harness",
       "flags": [
         "no read API / unified violation dashboard yet (Law 11 partial)"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -531,6 +763,14 @@
       "owner": "harness",
       "flags": [
         "core.hooksPath NOT configured by default -> hook may not fire; install-managed-hooks.sh is manual"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -549,6 +789,14 @@
       "owner": "harness",
       "flags": [
         "snippet exists but not merged into an active settings.json -> not wired by default"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -565,6 +813,14 @@
       "owner": "harness",
       "flags": [
         "built but never wired; untested"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -585,6 +841,14 @@
       "owner": "harness",
       "flags": [
         "untested"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -605,6 +869,14 @@
       "owner": "harness",
       "flags": [
         "hardcodes local path -> fails closed in cloud context; must move to repo-identity (both-first-class decision)"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -621,6 +893,14 @@
       "owner": "harness",
       "flags": [
         "new in this pass; not yet wired into pre-push"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -637,6 +917,14 @@
       "owner": "harness",
       "flags": [
         "schema only; no agent entry point; unwired"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -653,6 +941,14 @@
       "owner": "harness",
       "flags": [
         "built but never called by any live flow"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -673,6 +969,14 @@
       "owner": "harness",
       "flags": [
         "no scheduled job registered"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -689,6 +993,14 @@
       "owner": "experiments",
       "flags": [
         "~26M generated artifacts; candidate for sandbox/ relocation"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -705,6 +1017,14 @@
       "owner": "experiments",
       "flags": [
         "~15M; candidate for sandbox/ relocation"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -721,6 +1041,14 @@
       "owner": "experiments",
       "flags": [
         "superseded by Dashboard/Command Center direction"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -734,7 +1062,15 @@
       "wiredBy": [],
       "tests": "",
       "dependsOn": [],
-      "owner": "experiments"
+      "owner": "experiments",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "router",
@@ -752,6 +1088,14 @@
       "owner": "harness",
       "flags": [
         "minimal first wiring; dispatch table still hard-coded — deriving it from registry.json is a later wiring step"
+      ],
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
       ]
     },
     {
@@ -763,7 +1107,15 @@
       "role": "Signal classifier: signal → {type,intent,confidence,target}; rules-based, deterministic, LLM-swappable behind the same contract",
       "tests": "harness/sandbox/classifier/classifier.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "estimator",
@@ -774,7 +1126,15 @@
       "role": "Scores a work item so the orchestrator can prioritise — consults only, never dispatches",
       "tests": "harness/sandbox/estimator/estimator.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "reconciler",
@@ -787,7 +1147,15 @@
       "dependsOn": [
         "loop-store"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "tracer",
@@ -798,7 +1166,15 @@
       "role": "Cross-cutting trace context: one traceId per signal, one spanId per hop (linked), plus the four-tuple",
       "tests": "harness/sandbox/tracer/tracer.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "loop-store",
@@ -809,7 +1185,15 @@
       "role": "The data layer: append-only JSONL truth per stream → readable state/os.db; sole-writer per stream",
       "tests": "harness/sandbox/loop-store/loop-store.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "session-feedback",
@@ -827,7 +1211,15 @@
         "orchestrator",
         "loop-store"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "confinement",
@@ -842,7 +1234,15 @@
       ],
       "tests": "harness/sandbox/confinement/confinement.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "incident",
@@ -853,7 +1253,15 @@
       "role": "Deterministic spine of the incident log: STEPS + missingSteps/isComplete + new/check/list",
       "tests": "harness/sandbox/incident/incident.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "investigator",
@@ -865,7 +1273,15 @@
       "dependsOn": [
         "incident"
       ],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     },
     {
       "id": "signal-ledger",
@@ -876,7 +1292,15 @@
       "role": "Captures every real input as a four-tuple-stamped signal appended to the gitignored record/signals.jsonl; filters system-injected turns",
       "tests": "harness/sandbox/signal-ledger/filter.test.mjs",
       "dependsOn": [],
-      "owner": "harness"
+      "owner": "harness",
+      "version": "0.1.0",
+      "versions": [
+        {
+          "version": "0.1.0",
+          "date": "2026-07-01",
+          "change": "Initial version (seeded at P1-a)."
+        }
+      ]
     }
   ]
 }

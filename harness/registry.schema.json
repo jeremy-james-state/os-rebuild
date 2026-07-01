@@ -30,7 +30,9 @@
           "dependsOn": { "type": "array", "items": { "type": "string" }, "description": "ids of other components" },
           "owner": { "type": "string" },
           "flags": { "type": "array", "items": { "type": "string" }, "description": "Known governance gaps surfaced by the doctor" },
-          "evidence": { "type": "string" }
+          "evidence": { "type": "string" },
+          "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "description": "Contract-keyed semver of this component (MAJOR = input/output/exit break). Equals versions[last].version. Optional until P1-c enforcement." },
+          "versions": { "type": "array", "description": "Append-only version history; the structured source the co-located CHANGELOG.md is generated from.", "items": { "type": "object", "required": ["version", "date", "change"], "additionalProperties": false, "properties": { "version": { "type": "string" }, "date": { "type": "string" }, "change": { "type": "string" } } } }
         }
       }
     }
